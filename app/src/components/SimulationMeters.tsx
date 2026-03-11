@@ -16,40 +16,40 @@ export default function SimulationMeters({
     onStepBack,
 }: SimulationMetersProps) {
     const getTemperatureColor = (temp: number) => {
-        if (temp >= 8) return '#ef4444';
-        if (temp >= 6) return '#f59e0b';
-        if (temp >= 4) return '#fbbf24';
-        return 'var(--accent-primary)';
+        if (temp >= 8) return 'var(--accent-primary)';
+        if (temp >= 6) return 'var(--accent-primary)';
+        if (temp >= 4) return '#f59e0b';
+        return '#ef4444';
     };
 
     const getTemperatureLabel = (temp: number) => {
-        if (temp >= 8) return 'HOSTILE';
-        if (temp >= 6) return 'AGITATED';
-        if (temp >= 4) return 'UNEASY';
-        if (temp >= 2) return 'CALM';
-        return 'RELAXED';
+        if (temp >= 8) return 'EXCITED';
+        if (temp >= 6) return 'INTERESTED';
+        if (temp >= 4) return 'SKEPTICAL';
+        if (temp >= 2) return 'GUARDED';
+        return 'CLOSED';
     };
 
     const getDistanceLabel = (dist: number) => {
-        if (dist >= 8) return 'FAR';
-        if (dist >= 5) return 'SAFE';
-        if (dist >= 3) return 'CLOSE';
-        return 'VERY CLOSE';
+        if (dist >= 8) return 'TRUSTED';
+        if (dist >= 5) return 'WARMING';
+        if (dist >= 3) return 'NEUTRAL';
+        return 'COLD';
     };
 
     const getOfficerToneColor = (tone: number) => {
-        if (tone >= 8) return '#ef4444'; // Aggressive
-        if (tone >= 6) return '#f59e0b'; // Firm
-        if (tone >= 4) return '#fbbf24'; // Neutral
-        return 'var(--accent-primary)'; // Calm
+        if (tone >= 8) return '#ef4444'; // Pushy
+        if (tone >= 6) return '#f59e0b'; // Assertive
+        if (tone >= 4) return '#fbbf24'; // Consultative
+        return 'var(--accent-primary)'; // Empathetic
     };
 
     const getOfficerToneLabel = (tone: number) => {
-        if (tone >= 8) return 'AGGRESSIVE';
-        if (tone >= 6) return 'FIRM';
-        if (tone >= 4) return 'NEUTRAL';
-        if (tone >= 2) return 'CALM';
-        return 'EMPATHETIC';
+        if (tone >= 8) return 'PUSHY';
+        if (tone >= 6) return 'ASSERTIVE';
+        if (tone >= 4) return 'CONSULTATIVE';
+        if (tone >= 2) return 'EMPATHETIC';
+        return 'LISTENING';
     };
 
     const MeterBar = ({ value, color, label, labelColor }: { value: number; color: string; label: string; labelColor?: string }) => (
@@ -71,11 +71,11 @@ export default function SimulationMeters({
             className="flex items-center gap-5 px-4 py-2.5"
             style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         >
-            {/* Distance Controls */}
+            {/* Rapport Controls */}
             <div className="flex items-center gap-2">
                 <div>
                     <div className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
-                        DISTANCE
+                        RAPPORT
                     </div>
                     <MeterBar
                         value={distance}
@@ -106,10 +106,10 @@ export default function SimulationMeters({
             {/* Divider */}
             <div className="w-px h-10" style={{ background: 'var(--border-color)' }} />
 
-            {/* Subject Agitation */}
+            {/* Prospect Engagement */}
             <div>
                 <div className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
-                    SUBJECT
+                    ENGAGEMENT
                 </div>
                 <MeterBar
                     value={temperature}
@@ -121,10 +121,10 @@ export default function SimulationMeters({
             {/* Divider */}
             <div className="w-px h-10" style={{ background: 'var(--border-color)' }} />
 
-            {/* Officer Tone */}
+            {/* Rep Approach */}
             <div>
                 <div className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
-                    YOUR TONE
+                    REP APPROACH
                 </div>
                 <MeterBar
                     value={officerTone}

@@ -125,9 +125,9 @@ export default function DebriefScreen({
 
                 {/* Score Breakdown */}
                 <div className="grid grid-cols-3 gap-4 mb-6">
-                    <ScoreBox score={analysis.recognitionScore} label="Recognition" />
-                    <ScoreBox score={analysis.communicationScore} label="Communication" />
-                    <ScoreBox score={analysis.safetyScore} label="Safety" />
+                    <ScoreBox score={analysis.recognitionScore} label="MEDDIC Coverage" />
+                    <ScoreBox score={analysis.communicationScore} label="Discovery & Questions" />
+                    <ScoreBox score={analysis.safetyScore} label="Objection Handling" />
                 </div>
 
                 {/* Strengths */}
@@ -157,7 +157,7 @@ export default function DebriefScreen({
                 {/* Indicators */}
                 <div className="grid grid-cols-2 gap-4 mb-8">
                     <div className="p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-                        <span className="label-accent">INDICATORS DETECTED</span>
+                        <span className="label-accent">MEDDIC COVERED</span>
                         <ul className="mt-2 space-y-1">
                             {analysis.indicatorsPresent.slice(0, 4).map((s, i) => (
                                 <li key={i} className="text-sm" style={{ color: 'var(--text-secondary)' }}>• {s}</li>
@@ -165,7 +165,7 @@ export default function DebriefScreen({
                         </ul>
                     </div>
                     <div className="p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-                        <span className="label-accent">POTENTIALLY MISSED</span>
+                        <span className="label-accent">MEDDIC GAPS</span>
                         <ul className="mt-2 space-y-1">
                             {analysis.indicatorsMissed.slice(0, 4).map((s, i) => (
                                 <li key={i} className="text-sm" style={{ color: 'var(--text-secondary)' }}>• {s}</li>

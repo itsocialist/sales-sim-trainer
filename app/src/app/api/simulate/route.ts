@@ -8,8 +8,9 @@ const openai = new OpenAI({
 interface SimulateConfig {
     subject: {
         name: string;
-        age: string;
-        occupation: string;
+        title: string;
+        company: string;
+        industry: string;
         backstory: string;
         personalityTraits: string[];
         physicalDescription: string;
@@ -26,27 +27,30 @@ interface SimulateConfig {
     trainingPack: {
         targetRole: string;
     };
-    distance: number;
-    temperature: number;
+    distance: number;    // warmth/trust: 1=cold stranger, 10=trusted advisor
+    temperature: number; // engagement: 1=disinterested, 10=highly engaged/active eval
 }
 
-async function analyzeSentimentAndAgitation(
+async function analyzeEngagement(
     messages: { role: string; content: string }[],
-    currentDistance: number,
-    currentTemperature: number
+    currentWarmth: number,
+    currentEngagement: number
 ): Promise<{ temperatureChange: number; distanceChange: number; reason: string }> {
     const recentMessages = messages.slice(-6);
     const transcript = recentMessages
-        .map(m => `${m.role === 'user' ? 'TRAINEE' : 'SUBJECT'}: ${m.content}`)
+        .map(m => `${m.role === 'user' ? 'REP' : 'PROSPECT'}: ${m.content}`)
         .join('\n');
 
-    const analysisPrompt = `Analyze this interaction:
-1. How should the subject's agitation change? (-2 to +2)
-2. Should the subject move closer or further? (-1, 0, +1)
+    const analysisPrompt = `Analyze this sales conversation:
+1. How should the prospect's ENGAGEMENT change? (+2 = much more interested, 0 = neutral, -2 = losing interest/shutting down)
+2. How should WARMTH/TRUST change? (+1 = warmer/more open, 0 = neutral, -1 = cooler/more guarded)
 
-Distance: ${currentDistance}/10, Agitation: ${currentTemperature}/10
+Current Warmth (1=cold stranger, 10=trusted advisor): ${currentWarmth}/10
+Current Engagement (1=disinterested, 10=highly engaged): ${currentEngagement}/10
 
 ${transcript}
+
+Consider: Did the rep demonstrate relevance? Ask sharp discovery questions? Handle objections well? Earn respect?
 
 JSON only: {"temperatureChange": number, "distanceChange": number, "reason": "brief"}`;
 
@@ -71,51 +75,57 @@ JSON only: {"temperatureChange": number, "distanceChange": number, "reason": "br
 }
 
 function buildSystemPrompt(config: SimulateConfig): string {
-    const distanceContext = config.distance <= 2 ? 'The person is very close - you feel cornered.' :
-        config.distance <= 4 ? 'The person is at normal talking distance.' :
-            config.distance <= 7 ? 'The person is keeping reasonable distance.' :
-                'The person is far away, which helps.';
+    const warmthContext = config.distance <= 2
+        ? 'This rep is a cold stranger — you have zero relationship and no reason to trust them yet.'
+        : config.distance <= 4
+        ? 'You barely know this rep — professional but guarded.'
+        : config.distance <= 7
+        ? 'You\'re warming up. There\'s some rapport building.'
+        : 'You trust this rep. You speak candidly with them.';
 
-    const temperatureContext = config.temperature >= 8 ? 'You are extremely agitated. Voice raised, possibly yelling or crying.' :
-        config.temperature >= 6 ? 'You are noticeably tense and defensive.' :
-            config.temperature >= 4 ? 'You are uneasy and wary.' :
-                'You are relatively calm.';
+    const engagementContext = config.temperature >= 8
+        ? 'You are highly engaged — you have real pain and urgency. This might actually be what you need.'
+        : config.temperature >= 6
+        ? 'You are interested but evaluating carefully. Asking pointed questions.'
+        : config.temperature >= 4
+        ? 'You are somewhat curious but skeptical. You need more to commit your time.'
+        : 'You are skeptical and disinterested. You\'re looking for a reason to end this call.';
 
-    return `You ARE ${config.subject.name}, ${config.subject.age} years old.
+    return `You ARE ${config.subject.name}, ${config.subject.title} at ${config.subject.company}.
 
 WHO YOU ARE:
-- Occupation: ${config.subject.occupation}
+- Industry: ${config.subject.industry}
 - Background: ${config.subject.backstory}
 - Personality: ${config.subject.personalityTraits.join(', ')}
 
-YOUR CONDITION:
-${config.subjectPack.condition} (${config.subjectPack.conditionLevel})
+YOUR STAKEHOLDER TYPE:
+${config.subjectPack.condition}
 ${config.subjectPack.behaviorPrompt}
 
-SITUATION:
+CURRENT SITUATION:
 ${config.scenarioPack.context}
-${distanceContext}
-${temperatureContext}
+${warmthContext}
+${engagementContext}
 
-Interacting with: ${config.trainingPack.targetRole}
+You are speaking with: a ${config.trainingPack.targetRole}
 
 RESPONSE FORMAT:
 Your response MUST be valid JSON with exactly this structure:
 {
-  "behavior": "Detailed description of your physical state, actions, and body language",
-  "statements": ["First thing you say", "Second thing", "Third thing", "..."]
+  "behavior": "Your internal state, body language, and what you're doing during the call",
+  "statements": ["First thing you say", "Second thing", "Third thing"]
 }
 
-BEHAVIOR: Be specific - mention facial expressions, posture, movements, physical signs of your condition.
-Examples: "Swaying on feet, squinting at the light, fumbling in pockets", "Eyes darting around, backing toward the wall, hands trembling", "Crossing arms defensively, jaw tight, avoiding eye contact"
+BEHAVIOR: Describe your demeanor in this moment.
+Examples: "Glancing at watch, half-listening, clearly multitasking on laptop", "Leaning forward, genuinely interested, taking notes", "Arms crossed, skeptical, ready to push back"
 
-STATEMENTS: You MUST say 2-5 separate things. Each should be:
-- Realistic dialogue with "uh", "um", pauses "...", stutters, incomplete thoughts
-- Reflect your emotional state and condition
-- Show your personality
-- React to what was just said to you
+STATEMENTS: Say 2-4 realistic things. Each should:
+- Sound like an actual executive or manager (NOT a training script character)
+- Reflect your current engagement and trust level
+- Include authentic objections, sharp questions, OR genuine interest — based on your personality
+- React naturally to what the rep just said
 
-Stay in character as ${config.subject.name}. Never break character.`;
+Stay in character as ${config.subject.name}. Never break character. Never make things easier for the rep than your archetype would.`;
 }
 
 export async function POST(request: NextRequest) {
@@ -126,9 +136,9 @@ export async function POST(request: NextRequest) {
             config: SimulateConfig;
         };
 
-        let sentimentAnalysis = { temperatureChange: 0, distanceChange: 0, reason: '' };
+        let engagementAnalysis = { temperatureChange: 0, distanceChange: 0, reason: '' };
         if (messages.length >= 2) {
-            sentimentAnalysis = await analyzeSentimentAndAgitation(
+            engagementAnalysis = await analyzeEngagement(
                 messages,
                 config.distance,
                 config.temperature
@@ -145,7 +155,6 @@ export async function POST(request: NextRequest) {
             })),
         ];
 
-        // Non-streaming for JSON response
         const response = await openai.chat.completions.create({
             model: 'gpt-4o',
             max_tokens: 700,
@@ -162,40 +171,31 @@ export async function POST(request: NextRequest) {
         try {
             parsed = JSON.parse(responseText);
         } catch {
-            // Fallback if JSON parsing fails
-            parsed = { behavior: 'Looking uncertain', statements: [responseText] };
+            parsed = { behavior: 'Neutral expression', statements: [responseText] };
         }
 
         const behavior = parsed.behavior || 'No visible change';
         const statements = parsed.statements || ['...'];
 
-        // Stream the response
         const encoder = new TextEncoder();
         const readable = new ReadableStream({
             async start(controller) {
-                // Send metadata
                 controller.enqueue(encoder.encode(JSON.stringify({
                     type: 'meta',
                     sessionId,
-                    temperatureChange: sentimentAnalysis.temperatureChange,
-                    distanceChange: sentimentAnalysis.distanceChange,
+                    temperatureChange: engagementAnalysis.temperatureChange,
+                    distanceChange: engagementAnalysis.distanceChange,
                     behavior,
                 }) + '\n'));
 
-                // Stream each statement with a small delay between them
                 for (let i = 0; i < statements.length; i++) {
                     const statement = statements[i];
-
-                    // Stream characters for this statement
                     for (const char of statement) {
                         controller.enqueue(encoder.encode(JSON.stringify({
                             type: 'content',
                             content: char,
                         }) + '\n'));
-                        // Small delay for streaming effect (simulated)
                     }
-
-                    // Add paragraph break between statements
                     if (i < statements.length - 1) {
                         controller.enqueue(encoder.encode(JSON.stringify({
                             type: 'content',

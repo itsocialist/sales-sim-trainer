@@ -22,20 +22,20 @@ export default function ContextDisplay({ config }: ContextDisplayProps) {
                         </div>
                     </div>
 
-                    {/* Subject */}
+                    {/* Prospect */}
                     <div>
-                        <div className="label-accent text-xs">SUBJECT</div>
+                        <div className="label-accent text-xs">PROSPECT</div>
                         <div className="mt-1" style={{ color: 'var(--text-primary)' }}>
                             <span className="font-medium">{config.subject.name}</span>
-                            <span style={{ color: 'var(--text-muted)' }}> ({config.subject.age})</span>
+                            <span style={{ color: 'var(--text-muted)' }}> · {(config.subject as unknown as {title: string}).title || ''}</span>
                         </div>
                     </div>
 
-                    {/* Condition */}
+                    {/* Stakeholder Type */}
                     <div>
-                        <div className="label-accent text-xs">CONDITION</div>
+                        <div className="label-accent text-xs">STAKEHOLDER TYPE</div>
                         <div className="mt-1" style={{ color: 'var(--text-primary)' }}>
-                            {config.subjectPack.condition}
+                            {config.subjectPack.name}
                             <span
                                 className="ml-2 text-xs px-1.5 py-0.5"
                                 style={{
@@ -45,7 +45,7 @@ export default function ContextDisplay({ config }: ContextDisplayProps) {
                                         config.subjectPack.conditionLevel === 'moderate' ? '#f59e0b' : 'var(--accent-primary)',
                                 }}
                             >
-                                {config.subjectPack.conditionLevel.toUpperCase()}
+                                {config.subjectPack.conditionLevel === 'severe' ? 'ENTERPRISE' : config.subjectPack.conditionLevel === 'moderate' ? 'MID-MARKET' : 'SMB'}
                             </span>
                         </div>
                     </div>

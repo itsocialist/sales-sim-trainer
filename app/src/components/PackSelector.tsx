@@ -51,12 +51,12 @@ export default function PackSelector({ onStart }: PackSelectorProps) {
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="mb-10">
-                    <span className="label-accent">SIMUTRAIN</span>
+                    <span className="label-accent">SALESSIM</span>
                     <h1 className="text-3xl font-bold mt-2" style={{ color: 'var(--text-primary)' }}>
                         Select Training Pack
                     </h1>
                     <p className="mt-2" style={{ color: 'var(--text-secondary)' }}>
-                        Choose your role, subject type, and scenario
+                        Choose your role, stakeholder type, and deal scenario
                     </p>
                 </div>
 
@@ -88,7 +88,7 @@ export default function PackSelector({ onStart }: PackSelectorProps) {
                 {selectedTrainingPack && (
                     <div className="mb-8">
                         <h2 className="text-xs uppercase tracking-wider mb-4" style={{ color: 'var(--text-muted)' }}>
-                            Subject Type
+                            Stakeholder Type
                         </h2>
                         <div className="grid grid-cols-2 gap-4">
                             {selectedTrainingPack.subjectPacks.map((pack) => (
@@ -112,7 +112,7 @@ export default function PackSelector({ onStart }: PackSelectorProps) {
                                                 pack.conditionLevel === 'moderate' ? '#f59e0b' : 'var(--accent-primary)',
                                         }}
                                     >
-                                        {pack.conditionLevel.toUpperCase()}
+                                        {pack.conditionLevel === 'severe' ? 'ENTERPRISE' : pack.conditionLevel === 'moderate' ? 'MID-MARKET' : 'SMB'}
                                     </div>
                                 </button>
                             ))}
@@ -143,8 +143,8 @@ export default function PackSelector({ onStart }: PackSelectorProps) {
                                             <div className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{pack.description}</div>
                                         </div>
                                         <div className="text-right text-xs" style={{ color: 'var(--text-muted)' }}>
-                                            <div>Distance: {pack.initialDistance}/10</div>
-                                            <div>Tension: {pack.initialTemperature}/10</div>
+                                            <div>Warmth: {pack.initialDistance}/10</div>
+                                             <div>Engagement: {pack.initialTemperature}/10</div>
                                         </div>
                                     </div>
                                 </button>
@@ -163,8 +163,8 @@ export default function PackSelector({ onStart }: PackSelectorProps) {
                                 <div style={{ color: 'var(--text-primary)' }}>{selectedTrainingPack?.targetRole}</div>
                             </div>
                             <div>
-                                <div style={{ color: 'var(--text-muted)' }}>Subject Condition</div>
-                                <div style={{ color: 'var(--text-primary)' }}>{selectedSubjectPack?.condition}</div>
+                                <div style={{ color: 'var(--text-muted)' }}>Stakeholder Type</div>
+                                 <div style={{ color: 'var(--text-primary)' }}>{selectedSubjectPack?.name}</div>
                             </div>
                             <div>
                                 <div style={{ color: 'var(--text-muted)' }}>Scenario</div>

@@ -19,61 +19,36 @@ interface SimulationChatProps {
     onEndSession: (messages: Message[], scenarioContext: string, intoxicationLevel: string) => void;
 }
 
-// Analyze officer tone based on message content
-function analyzeOfficerTone(message: string): number {
+// Analyze rep's sales approach based on message content
+function analyzeRepApproach(message: string): number {
     const lower = message.toLowerCase();
-    let tone = 5; // Start neutral
+    let pushiness = 5; // Start consultative
 
-    // STRONG AGGRESSIVE INDICATORS - yelling, screaming (+3 to +4)
-    if (lower.includes('*yells*') || lower.includes('**yells**')) tone += 4;
-    if (lower.includes('*screams*') || lower.includes('**screams**')) tone += 4;
-    if (lower.includes('*shouts*') || lower.includes('**shouts**')) tone += 4;
-    if (lower.includes('*slams*')) tone += 3;
-    if (lower.includes('*grabs*')) tone += 3;
-
-    // All caps detection (more than 5 chars = yelling)
+    // PUSHY/AGGRESSIVE SALES BEHAVIORS
+    if (lower.includes('you need to') || lower.includes('you have to')) pushiness += 2;
+    if (lower.includes('limited time') || lower.includes('expiring')) pushiness += 2;
+    if (lower.includes('if you don\'t') || lower.includes('you\'ll miss')) pushiness += 2;
+    if (lower.includes('sign today') || lower.includes('close today')) pushiness += 3;
+    if (lower.includes('final offer') || lower.includes('last chance')) pushiness += 3;
+    if (lower.includes('trust me') || lower.includes('i promise')) pushiness += 1;
+    // All caps
     const capsWords = message.match(/\b[A-Z]{3,}\b/g);
-    if (capsWords && capsWords.length > 0) tone += capsWords.length * 1.5;
+    if (capsWords && capsWords.length > 0) pushiness += capsWords.length;
 
-    // Multiple exclamation marks = aggressive
-    const exclamationCount = (message.match(/!/g) || []).length;
-    if (exclamationCount >= 2) tone += 2;
-    else if (exclamationCount === 1) tone += 1;
+    // CONSULTATIVE/EMPATHETIC BEHAVIORS
+    if (lower.includes('what does') || lower.includes('how do you')) pushiness -= 2;
+    if (lower.includes('help me understand')) pushiness -= 2;
+    if (lower.includes('tell me more')) pushiness -= 2;
+    if (lower.includes('what\'s the') || lower.includes('what are the')) pushiness -= 1;
+    if (lower.includes('i hear you') || lower.includes('that makes sense')) pushiness -= 2;
+    if (lower.includes('what would success look like')) pushiness -= 3;
+    if (lower.includes('what matters most to you')) pushiness -= 3;
+    if (lower.includes('curious') || lower.includes('wondering')) pushiness -= 1;
+    if (lower.includes('your team') || lower.includes('your business')) pushiness -= 1;
+    if (lower.includes('roi') || lower.includes('impact') || lower.includes('value')) pushiness -= 1;
+    if (message.includes('?') && (lower.includes('what') || lower.includes('how') || lower.includes('why'))) pushiness -= 1;
 
-    // Aggressive words/phrases (+1 to +2)
-    if (lower.includes('now')) tone += 1;
-    if (lower.includes('immediately')) tone += 2;
-    if (lower.includes('comply')) tone += 2;
-    if (lower.includes('arrest')) tone += 2;
-    if (lower.includes('demand')) tone += 2;
-    if (lower.includes('stop')) tone += 1;
-    if (lower.includes('shut up')) tone += 3;
-    if (lower.includes('hands up') || lower.includes('hands on')) tone += 2;
-    if (lower.includes('don\'t move')) tone += 1;
-    if (lower.includes('get down')) tone += 2;
-    if (lower.includes('back off')) tone += 1;
-    if (lower.includes('what are you doing')) tone += 1;
-    if (lower.includes('hey you')) tone += 1;
-
-    // Calm/empathetic indicators (-)
-    if (lower.includes('help')) tone -= 1;
-    if (lower.includes('okay') || lower.includes('ok')) tone -= 1;
-    if (lower.includes('understand')) tone -= 1;
-    if (lower.includes('calm')) tone -= 1;
-    if (lower.includes('safe')) tone -= 1;
-    if (lower.includes('please')) tone -= 1;
-    if (lower.includes('just want to')) tone -= 1;
-    if (lower.includes('take your time')) tone -= 2;
-    if (lower.includes('it\'s okay') || lower.includes('it\'s alright')) tone -= 2;
-    if (lower.includes('no rush')) tone -= 1;
-    if (lower.includes('i\'m here to help')) tone -= 2;
-    if (lower.includes('talk to me')) tone -= 1;
-    if (lower.includes('what\'s wrong')) tone -= 1;
-
-    // Single question mark without aggressive words = softer
-    if (message.includes('?') && exclamationCount === 0 && tone <= 5) tone -= 0.5;
-
-    return Math.max(1, Math.min(10, Math.round(tone)));
+    return Math.max(1, Math.min(10, Math.round(pushiness)));
 }
 
 export default function SimulationChat({ config, onEndSession }: SimulationChatProps) {
@@ -127,8 +102,8 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
     const sendMessage = async () => {
         if (!input.trim() || isLoading) return;
 
-        // Analyze officer tone from the message
-        const messageTone = analyzeOfficerTone(input.trim());
+        // Analyze rep's approach from the message
+        const messageTone = analyzeRepApproach(input.trim());
         setOfficerTone(messageTone);
 
         const userMessage: Message = {
@@ -272,7 +247,7 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
                                 Initiate contact with {config.subject.name}
                             </p>
                             <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
-                                {config.subject.physicalDescription}
+                                {(config.subject as unknown as {title: string; company: string}).title} · {(config.subject as unknown as {title: string; company: string}).company}
                             </p>
                         </div>
                     )}
@@ -297,7 +272,7 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
                                             <AudioPlayer
                                                 text={message.content}
                                                 subjectName={config.subject.name}
-                                                subjectAge={config.subject.age}
+                                                subjectAge={(config.subject as unknown as {title: string}).title || 'Executive'}
                                             />
                                         </div>
                                     </div>
@@ -368,7 +343,7 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        placeholder={`Speak to ${config.subject.name}...`}
+                        placeholder={`Speak to ${config.subject.name} (${(config.subject as unknown as {title: string}).title || 'prospect'})...`}
                         className="input flex-1 px-5 py-3"
                         disabled={isLoading}
                     />

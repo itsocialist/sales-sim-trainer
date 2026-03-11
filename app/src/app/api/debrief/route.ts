@@ -13,42 +13,55 @@ interface Message {
 interface DebriefRequest {
     messages: Message[];
     scenarioContext: string;
-    intoxicationLevel: string;
-    traineeRole?: string; // e.g., "Police Officer", "Teacher/Administrator", "Social Worker"
-    subjectCondition?: string; // e.g., "Alcohol Intoxication", "Acute Emotional Episode"
+    intoxicationLevel: string; // deal complexity level (mild/moderate/severe)
+    traineeRole?: string;      // e.g., "Enterprise Account Executive", "SDR"
+    subjectCondition?: string; // stakeholder archetype, e.g., "Economic Buyer (CFO/VP)"
 }
 
-function buildDebriefPrompt(traineeRole: string, subjectCondition: string): string {
-    const roleLabel = traineeRole || 'officer';
-    const conditionLabel = subjectCondition || 'an individual in distress';
+function buildDebriefPrompt(traineeRole: string, stakeholderType: string): string {
+    const roleLabel = traineeRole || 'Account Executive';
 
-    return `You are an expert trainer analyzing a behavioral simulation conversation.
+    return `You are a senior sales coach analyzing a sales simulation conversation.
 
-The trainee (acting as a ${roleLabel}) just completed a scenario involving ${conditionLabel}.
+The trainee (acting as a ${roleLabel}) just completed a scenario with a prospect playing the role of: ${stakeholderType}.
 
-Analyze their performance and provide:
+Analyze their sales performance across four dimensions:
 
-1. **RECOGNITION SCORE (1-10)**: How well did they identify indicators of the subject's condition?
-   - Did they notice emotional cues, distress signals, behavioral patterns?
+1. **MEDDIC COVERAGE SCORE (1-10)**: How well did they qualify using MEDDIC/MEDDPICC?
+   - Did they uncover Metrics (quantifiable business impact)?
+   - Did they identify or confirm the Economic Buyer?
+   - Did they understand Decision Criteria and Decision Process?
+   - Did they Identify Pain clearly?
+   - Did they develop or confirm a Champion?
+   - (Bonus: Did they surface Paper Process or map Competition?)
 
-2. **COMMUNICATION SCORE (1-10)**: How effective was their communication approach?
-   - Clear guidance, patience, appropriate tone, de-escalation language, empathy
+2. **DISCOVERY & QUESTIONING SCORE (1-10)**: Quality of their questions and listening.
+   - Did they ask insight-led, open-ended questions?
+   - Did they listen and adapt, or push their agenda?
+   - Did they uncover needs vs. just presenting features?
+   - Did they use a hypothesis-led opening ("Companies like yours often struggle with X...")?
 
-3. **SAFETY AWARENESS SCORE (1-10)**: Did they demonstrate appropriate practices?
-   - Distance management, situational awareness, considering when to get help
+3. **OBJECTION HANDLING SCORE (1-10)**: How well did they handle pushback?
+   - Did they acknowledge, empathize, then reframe?
+   - Did they get defensive or capitulate too quickly?
+   - Did they turn objections into discovery opportunities?
+   - Did they close for next steps clearly?
 
-4. **KEY OBSERVATIONS**: 
-   - What did the ${roleLabel} do well? (2-3 specific examples)
-   - What could they improve? (2-3 specific recommendations)
+4. **EXECUTIVE PRESENCE & CREDIBILITY SCORE (1-10)**: Did they show up like a trusted advisor?
+   - Did they lead with business value, not features?
+   - Were they concise, confident, and clear?
+   - Did they demonstrate peer-level conversation with the stakeholder?
+   - Did they use appropriate social proof and competitor positioning?
 
-5. **INDICATORS DETECTED**:
-   List which signs of the subject's condition were present that the ${roleLabel} should have noticed.
+5. **KEY OBSERVATIONS**:
+   - What did the ${roleLabel} do well? (2-3 specific examples with actual quotes)
+   - What should they improve? (2-3 specific, actionable coaching points)
 
-6. **OVERALL ASSESSMENT**:
-   A brief 2-3 sentence summary of their performance.
+6. **MEDDIC GAPS**: Which MEDDIC pillars were NOT covered or covered poorly?
 
-Be specific. Reference actual dialogue. Be constructive, not harsh.
-Always refer to the trainee as "${roleLabel}" (never "officer" unless that's their role).
+7. **OVERALL ASSESSMENT**: A 2-3 sentence summary. Be direct and coaching-focused.
+
+Reference actual dialogue in your feedback. Be specific and actionable. Don't be vague.
 
 Format your response as JSON:
 {
@@ -58,10 +71,12 @@ Format your response as JSON:
   "overallScore": number,
   "strengths": ["string", "string"],
   "improvements": ["string", "string"],
-  "indicatorsPresent": ["string", "string"],
-  "indicatorsMissed": ["string", "string"],
+  "indicatorsPresent": ["MEDDIC pillar covered", "..."],
+  "indicatorsMissed": ["MEDDIC pillar missed", "..."],
   "summary": "string"
-}`;
+}
+
+Note: recognitionScore = MEDDIC Coverage, communicationScore = Discovery & Questioning, safetyScore = Objection Handling. overallScore = weighted average.`;
 }
 
 export async function POST(request: NextRequest) {
@@ -70,8 +85,8 @@ export async function POST(request: NextRequest) {
             messages,
             scenarioContext,
             intoxicationLevel,
-            traineeRole = 'officer',
-            subjectCondition = 'distress'
+            traineeRole = 'Account Executive',
+            subjectCondition = 'prospect'
         }: DebriefRequest = await request.json();
 
         if (!messages || messages.length < 2) {
@@ -81,10 +96,9 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Build conversation transcript with role-appropriate labels
         const traineeLabel = traineeRole.toUpperCase().replace(/\//g, '-');
         const transcript = messages
-            .map(m => `${m.role === 'user' ? traineeLabel : 'SUBJECT'}: ${m.content}`)
+            .map(m => `${m.role === 'user' ? traineeLabel : 'PROSPECT'}: ${m.content}`)
             .join('\n\n');
 
         const debriefPrompt = buildDebriefPrompt(traineeRole, subjectCondition);
@@ -93,7 +107,7 @@ export async function POST(request: NextRequest) {
 
 SCENARIO CONTEXT:
 ${scenarioContext}
-Subject Condition Level: ${intoxicationLevel}
+Deal Complexity: ${intoxicationLevel}
 
 CONVERSATION TRANSCRIPT:
 ${transcript}
@@ -102,9 +116,9 @@ Provide your analysis as valid JSON only, no markdown formatting.`;
 
         const response = await openai.chat.completions.create({
             model: 'gpt-4o',
-            max_tokens: 1000,
+            max_tokens: 1200,
             messages: [
-                { role: 'system', content: `You are a training analyst for ${traineeRole}s. Respond only with valid JSON.` },
+                { role: 'system', content: `You are a senior sales coach and MEDDIC expert analyzing a ${traineeRole} simulation. Respond only with valid JSON.` },
                 { role: 'user', content: analysisPrompt },
             ],
             temperature: 0.3,
