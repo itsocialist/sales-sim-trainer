@@ -273,6 +273,7 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
                                                 text={message.content}
                                                 subjectName={config.subject.name}
                                                 subjectAge={(config.subject as unknown as {title: string}).title || 'Executive'}
+                                                subjectCondition={config.subjectPack?.conditionLevel || config.subject.name}
                                             />
                                         </div>
                                     </div>
