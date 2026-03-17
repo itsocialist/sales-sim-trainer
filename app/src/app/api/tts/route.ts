@@ -1,47 +1,24 @@
-import OpenAI from 'openai';
+/**
+ * TTS API Route — SalesSim
+ * 
+ * Synthesizes speech from text using the configured TTS provider.
+ * Supports ElevenLabs (premium), Fish Audio (cost-effective), and OpenAI (fallback).
+ * 
+ * Provider selection: TTS_PROVIDER env var → automatic fallback
+ * 
+ * POST /api/tts
+ * Body: { text, subjectCondition?, subjectName?, subjectAge? }
+ * Response: audio/mpeg binary
+ */
+
 import { NextRequest } from 'next/server';
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Voice mapping for different subject types
-const VOICE_MAP: Record<string, 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'> = {
-    // Male voices
-    'male-young': 'echo',
-    'male-middle': 'onyx',
-    'male-older': 'fable',
-    // Female voices
-    'female-young': 'shimmer',
-    'female-middle': 'nova',
-    'female-older': 'alloy',
-    // Default
-    'default': 'onyx',
-};
-
-function selectVoice(subjectName: string, subjectAge: string): 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer' {
-    // Simple heuristic based on name patterns and age
-    const age = parseInt(subjectAge) || 30;
-
-    // Common female first names
-    const femaleNames = ['sarah', 'michelle', 'maria', 'emma', 'jasmine', 'alex'];
-    const firstName = subjectName.split(' ')[0].toLowerCase();
-    const isFemale = femaleNames.some(n => firstName.includes(n));
-
-    if (isFemale) {
-        if (age < 25) return 'shimmer';
-        if (age < 45) return 'nova';
-        return 'alloy';
-    } else {
-        if (age < 25) return 'echo';
-        if (age < 45) return 'onyx';
-        return 'fable';
-    }
-}
+import { synthesizeSpeech, getProviderStatus, resolveVoiceProfile, resolveVoiceFromNameAge } from '@/lib/voice';
+import type { TTSRequest } from '@/lib/voice';
 
 export async function POST(request: NextRequest) {
     try {
-        const { text, subjectName, subjectAge } = await request.json();
+        const body = await request.json();
+        const { text, subjectCondition, subjectName, subjectAge } = body;
 
         if (!text || text.trim().length === 0) {
             return new Response(JSON.stringify({ error: 'No text provided' }), {
@@ -50,31 +27,55 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // Select voice based on subject
-        const voice = selectVoice(subjectName || 'default', subjectAge || '30');
+        // Resolve voice profile from stakeholder context
+        // Priority: subjectCondition (new) > subjectName/Age (legacy)
+        const voiceProfile = subjectCondition
+            ? resolveVoiceProfile(subjectCondition)
+            : resolveVoiceFromNameAge(subjectName || 'default', subjectAge || '35');
 
-        // Generate speech
-        const response = await openai.audio.speech.create({
-            model: 'tts-1', // Use tts-1-hd for higher quality (more expensive)
-            voice,
-            input: text,
-            response_format: 'mp3',
-            speed: 1.0,
-        });
+        // Build TTS request
+        const ttsRequest: TTSRequest = {
+            text: text.trim(),
+            voiceProfile,
+            format: 'mp3',
+        };
 
-        // Get the audio data as a buffer
-        const audioBuffer = await response.arrayBuffer();
+        // Synthesize with automatic fallback
+        const result = await synthesizeSpeech(ttsRequest);
 
-        // Return audio as binary
-        return new Response(audioBuffer, {
+        // Return audio binary
+        return new Response(result.audioBuffer, {
             headers: {
-                'Content-Type': 'audio/mpeg',
-                'Content-Length': audioBuffer.byteLength.toString(),
+                'Content-Type': result.contentType,
+                'Content-Length': result.audioBuffer.byteLength.toString(),
+                'X-TTS-Provider': result.provider,
+                'X-TTS-Latency-Ms': result.latencyMs.toString(),
+                'X-Voice-Name': voiceProfile.name,
             },
         });
     } catch (error) {
         console.error('TTS API error:', error);
-        return new Response(JSON.stringify({ error: 'Failed to generate speech' }), {
+        const message = error instanceof Error ? error.message : 'Failed to generate speech';
+        return new Response(JSON.stringify({ error: message }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
+}
+
+/**
+ * GET /api/tts — Provider status endpoint
+ * Returns which providers are available and which is primary.
+ */
+export async function GET() {
+    try {
+        const status = getProviderStatus();
+        return new Response(JSON.stringify(status), {
+            headers: { 'Content-Type': 'application/json' },
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to get provider status';
+        return new Response(JSON.stringify({ error: message }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' },
         });

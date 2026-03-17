@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 interface AudioPlayerProps {
     text: string;
     subjectName: string;
     subjectAge: string;
+    /** Stakeholder condition for voice matching (e.g., "Champion / Internal Advocate") */
+    subjectCondition?: string;
     autoPlay?: boolean;
     onPlayStart?: () => void;
     onPlayEnd?: () => void;
@@ -15,6 +17,7 @@ export default function AudioPlayer({
     text,
     subjectName,
     subjectAge,
+    subjectCondition,
     autoPlay = false,
     onPlayStart,
     onPlayEnd,
@@ -22,6 +25,7 @@ export default function AudioPlayer({
     const [isLoading, setIsLoading] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
+    const [provider, setProvider] = useState<string>('');
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     // Generate audio when text changes (if autoPlay is enabled)
@@ -29,6 +33,7 @@ export default function AudioPlayer({
         if (autoPlay && text) {
             generateAudio();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [text, autoPlay]);
 
     // Cleanup audio URL on unmount
@@ -40,7 +45,7 @@ export default function AudioPlayer({
         };
     }, [audioUrl]);
 
-    const generateAudio = async () => {
+    const generateAudio = useCallback(async () => {
         if (!text || isLoading) return;
 
         setIsLoading(true);
@@ -48,10 +53,19 @@ export default function AudioPlayer({
             const response = await fetch('/api/tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text, subjectName, subjectAge }),
+                body: JSON.stringify({
+                    text,
+                    subjectCondition,
+                    subjectName,
+                    subjectAge,
+                }),
             });
 
             if (!response.ok) throw new Error('TTS failed');
+
+            // Capture provider info from headers
+            const ttsProvider = response.headers.get('X-TTS-Provider') || '';
+            setProvider(ttsProvider);
 
             const audioBlob = await response.blob();
             const url = URL.createObjectURL(audioBlob);
@@ -73,7 +87,7 @@ export default function AudioPlayer({
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [text, subjectCondition, subjectName, subjectAge, autoPlay, audioUrl, isLoading]);
 
     const handlePlay = async () => {
         if (!audioUrl) {
@@ -103,6 +117,13 @@ export default function AudioPlayer({
         onPlayEnd?.();
     };
 
+    // Provider indicator color
+    const providerColor = provider === 'elevenlabs' 
+        ? 'var(--accent-primary)' 
+        : provider === 'fish' 
+            ? '#60a5fa' 
+            : 'var(--text-muted)';
+
     return (
         <div className="inline-flex items-center gap-1">
             <audio
@@ -115,13 +136,19 @@ export default function AudioPlayer({
             <button
                 onClick={isPlaying ? handleStop : handlePlay}
                 disabled={isLoading}
-                className="w-6 h-6 flex items-center justify-center text-xs transition-all"
+                className="w-7 h-7 flex items-center justify-center text-xs transition-all"
                 style={{
                     background: isPlaying ? 'var(--accent-primary)' : 'var(--bg-input)',
-                    border: '1px solid var(--border-color)',
+                    border: `1px solid ${isPlaying ? 'var(--accent-primary)' : 'var(--border-color)'}`,
                     color: isPlaying ? '#000' : 'var(--text-muted)',
                 }}
-                title={isPlaying ? 'Stop' : 'Play voice'}
+                title={
+                    isLoading 
+                        ? 'Generating...' 
+                        : isPlaying 
+                            ? 'Stop' 
+                            : `Play voice${provider ? ` (${provider})` : ''}`
+                }
             >
                 {isLoading ? (
                     <span className="animate-pulse">●</span>
@@ -131,6 +158,15 @@ export default function AudioPlayer({
                     '▶'
                 )}
             </button>
+
+            {/* Provider dot indicator */}
+            {provider && !isLoading && (
+                <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ background: providerColor }}
+                    title={provider}
+                />
+            )}
         </div>
     );
 }
