@@ -49,7 +49,7 @@ Implement Fish Audio as a cost-effective TTS alternative behind the same provide
 ---
 
 ### S1-03: Speech-to-Text (STT) Input
-**Priority:** P0 | **Points:** 5 | **Assignee:** Eng | **Status:** ⚪ Not Started
+**Priority:** P0 | **Points:** 5 | **Assignee:** Eng | **Status:** ✅ Done (PR #9)
 
 **Description:**
 Add voice input so reps can speak their responses instead of typing.
@@ -72,7 +72,7 @@ Add voice input so reps can speak their responses instead of typing.
 ---
 
 ### S1-04: Deepgram STT Integration
-**Priority:** P1 | **Points:** 3 | **Assignee:** Eng | **Status:** ⚪ Not Started
+**Priority:** P1 | **Points:** 3 | **Assignee:** Eng | **Status:** ✅ Done (PR #11)
 
 **Description:**
 Add server-side Deepgram as a higher-accuracy STT alternative.
@@ -91,7 +91,7 @@ Add server-side Deepgram as a higher-accuracy STT alternative.
 ---
 
 ### S1-05: Voice-First Simulation Mode
-**Priority:** P0 | **Points:** 5 | **Assignee:** Eng | **Status:** ⚪ Not Started
+**Priority:** P0 | **Points:** 5 | **Assignee:** Eng | **Status:** ✅ Done (PR #10)
 
 **Description:**
 Enable "hands-free" mode for continuous voice conversation.
