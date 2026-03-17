@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { type SimulationConfig } from './PackSelector';
 import ContextDisplay from './ContextDisplay';
 import SimulationMeters from './SimulationMeters';
 import BehaviorStrip from './BehaviorStrip';
 import AudioPlayer from './AudioPlayer';
 import SubjectAvatar from './SubjectAvatar';
+import VoiceInput from './VoiceInput';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -338,20 +339,29 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
 
             {/* Input Area */}
             <div className="border-t px-6 py-4" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
-                <div className="max-w-3xl mx-auto flex gap-4">
+                <div className="max-w-3xl mx-auto flex gap-3 items-center">
+                    {/* Mic Button */}
+                    <VoiceInput
+                        onTranscript={(text) => setInput((prev) => prev ? `${prev} ${text}` : text)}
+                        disabled={isLoading}
+                        autoSend={false}
+                    />
+
                     <input
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        placeholder={`Speak to ${config.subject.name} (${(config.subject as unknown as {title: string}).title || 'prospect'})...`}
+                        placeholder={`Speak to ${config.subject.name} — type or press mic / spacebar...`}
                         className="input flex-1 px-5 py-3"
                         disabled={isLoading}
+                        id="simulation-input"
                     />
                     <button
                         onClick={sendMessage}
                         disabled={!input.trim() || isLoading}
                         className="btn-primary px-8 py-3 font-semibold"
+                        id="send-btn"
                     >
                         SEND
                     </button>
