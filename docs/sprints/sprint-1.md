@@ -116,7 +116,7 @@ Enable "hands-free" mode for continuous voice conversation.
 ---
 
 ### S1-06: Design System Audit
-**Priority:** P1 | **Points:** 3 | **Assignee:** UI/UX | **Status:** ⚪ Not Started
+**Priority:** P1 | **Points:** 3 | **Assignee:** UI/UX | **Status:** ✅ Done
 
 **Description:**
 UI/UX designer reviews the current Iron Bank design system and app UX.
@@ -130,7 +130,7 @@ UI/UX designer reviews the current Iron Bank design system and app UX.
 ---
 
 ### S1-07: Scenario Realism Review
-**Priority:** P1 | **Points:** 2 | **Assignee:** Sales Expert | **Status:** ⚪ Not Started
+**Priority:** P1 | **Points:** 2 | **Assignee:** Sales Expert | **Status:** ✅ Done
 
 **Description:**
 Sales domain expert audits all training pack content for realism.
@@ -148,12 +148,12 @@ Sales domain expert audits all training pack content for realism.
 
 | Metric | Target | Actual |
 |--------|--------|--------|
-| Stories Completed | 7/7 | — |
-| Points Completed | 26/26 | — |
-| Voice Loop Working | ✅ | — |
-| Provider Abstraction | ✅ | — |
-| Design Brief Delivered | ✅ | — |
-| Sales Audit Delivered | ✅ | — |
+| Stories Completed | 7/7 | 7/7 ✅ |
+| Points Completed | 26/26 | 26/26 ✅ |
+| Voice Loop Working | ✅ | ✅ |
+| Provider Abstraction | ✅ | ✅ |
+| Design Brief Delivered | ✅ | ✅ |
+| Sales Audit Delivered | ✅ | ✅ |
 
 ## Notes
 - ElevenLabs API keys available from `ai-outbound-caller` and `claude-cowork` projects
