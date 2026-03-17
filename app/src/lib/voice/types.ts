@@ -64,3 +64,35 @@ export interface TTSProvider {
     /** Check if the provider is configured and available */
     isAvailable(): boolean;
 }
+
+// ── STT Provider Types ──
+
+export interface STTRequest {
+    /** Audio data as ArrayBuffer (WAV/WebM from MediaRecorder) */
+    audioBuffer: ArrayBuffer;
+    /** MIME type of the audio */
+    contentType: string;
+    /** Language code */
+    language?: string;
+}
+
+export interface STTResponse {
+    /** Transcribed text */
+    transcript: string;
+    /** Confidence score 0.0-1.0 */
+    confidence: number;
+    /** Provider that transcribed */
+    provider: STTProviderName;
+    /** Latency in ms */
+    latencyMs: number;
+    /** Whether this is a final result */
+    isFinal: boolean;
+}
+
+export interface STTProvider {
+    name: STTProviderName;
+    /** Transcribe audio to text */
+    transcribe(request: STTRequest): Promise<STTResponse>;
+    /** Check if the provider is configured and available */
+    isAvailable(): boolean;
+}
