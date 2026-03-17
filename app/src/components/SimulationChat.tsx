@@ -8,6 +8,7 @@ import BehaviorStrip from './BehaviorStrip';
 import AudioPlayer from './AudioPlayer';
 import SubjectAvatar from './SubjectAvatar';
 import VoiceInput from './VoiceInput';
+import VoiceFirstOverlay from './VoiceFirstOverlay';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -63,6 +64,8 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
     const [officerTone, setOfficerTone] = useState(5); // Start neutral
     const [behaviorDescription, setBehaviorDescription] = useState('');
     const [sessionId] = useState(`session-${Date.now()}`);
+    const [voiceMode, setVoiceMode] = useState(false);
+    const [lastAssistantMessage, setLastAssistantMessage] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -200,8 +203,97 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
         }
     };
 
+    // Voice-first mode: send message via voice transcript
+    const sendVoiceMessage = useCallback((text: string) => {
+        if (!text.trim() || isLoading) return;
+
+        const userMessage: Message = {
+            role: 'user',
+            content: text.trim(),
+            timestamp: new Date(),
+        };
+
+        setMessages(prev => [...prev, userMessage]);
+        setInput('');
+        setIsLoading(true);
+        setStreamingContent('');
+
+        // Call the same simulation API
+        fetch('/api/simulate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
+                sessionId,
+                config: {
+                    subject: config.subject,
+                    subjectPack: config.subjectPack,
+                    scenarioPack: config.scenarioPack,
+                    trainingPack: config.trainingPack,
+                    distance,
+                    temperature,
+                },
+            }),
+        }).then(async response => {
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder();
+            let fullContent = '';
+
+            if (reader) {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const text = decoder.decode(value);
+                    const lines = text.split('\n').filter(Boolean);
+                    for (const line of lines) {
+                        try {
+                            const data = JSON.parse(line);
+                            if (data.type === 'meta') {
+                                if (data.temperatureChange) setTemperature(t => Math.max(1, Math.min(10, t + data.temperatureChange)));
+                                if (data.distanceChange) setDistance(d => Math.max(1, Math.min(10, d + data.distanceChange)));
+                                if (data.behavior) setBehaviorDescription(data.behavior);
+                            } else if (data.type === 'content') {
+                                fullContent += data.content;
+                                setStreamingContent(fullContent);
+                            } else if (data.type === 'done') {
+                                const assistantMessage: Message = {
+                                    role: 'assistant',
+                                    content: fullContent,
+                                    timestamp: new Date(),
+                                };
+                                setMessages(prev => [...prev, assistantMessage]);
+                                setLastAssistantMessage(fullContent);
+                                setStreamingContent('');
+                            }
+                        } catch { /* skip */ }
+                    }
+                }
+            }
+        }).catch(error => {
+            console.error('Voice message failed:', error);
+        }).finally(() => {
+            setIsLoading(false);
+        });
+    }, [messages, isLoading, sessionId, config, distance, temperature]);
+
     return (
         <div className="flex flex-col h-screen" style={{ background: 'var(--bg-primary)' }}>
+            {/* Voice-First Overlay */}
+            {voiceMode && (
+                <VoiceFirstOverlay
+                    subjectName={config.subject.name}
+                    subjectTitle={(config.subject as unknown as { title: string }).title || 'Prospect'}
+                    lastAssistantMessage={lastAssistantMessage}
+                    isStreaming={!!streamingContent}
+                    streamingText={streamingContent}
+                    onUserSpeak={sendVoiceMessage}
+                    onExitVoiceMode={() => setVoiceMode(false)}
+                    sessionTime={sessionTime}
+                    rapport={Math.round(10 - temperature)}
+                    isLoading={isLoading}
+                    subjectCondition={config.subjectPack?.conditionLevel}
+                />
+            )}
             {/* Context Display */}
             <ContextDisplay config={config} />
 
@@ -225,6 +317,17 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
                     onStepBack={handleStepBack}
                 />
                 <div className="flex items-center gap-6">
+                    <button
+                        onClick={() => setVoiceMode(!voiceMode)}
+                        className="btn-secondary px-4 py-2 text-xs font-semibold"
+                        style={{
+                            borderColor: voiceMode ? 'var(--accent-primary)' : 'var(--border-color)',
+                            color: voiceMode ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                        }}
+                        id="voice-mode-toggle"
+                    >
+                        {voiceMode ? '◉ VOICE MODE' : '○ VOICE MODE'}
+                    </button>
                     <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                         <span style={{ color: 'var(--text-muted)' }}>TIME</span>
                         <span className="ml-2 font-mono" style={{ color: 'var(--accent-primary)' }}>{formatTime(sessionTime)}</span>
