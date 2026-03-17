@@ -8,7 +8,7 @@
 ## Stories
 
 ### S1-01: ElevenLabs TTS Integration
-**Priority:** P0 | **Points:** 5 | **Assignee:** Eng | **Status:** ⚪ Not Started
+**Priority:** P0 | **Points:** 5 | **Assignee:** Eng | **Status:** ✅ Done (PR #8)
 
 **Description:**
 Replace OpenAI TTS with ElevenLabs for higher-quality, emotionally expressive voices.
@@ -30,7 +30,7 @@ Replace OpenAI TTS with ElevenLabs for higher-quality, emotionally expressive vo
 ---
 
 ### S1-02: Fish Audio TTS Fallback
-**Priority:** P0 | **Points:** 3 | **Assignee:** Eng | **Status:** ⚪ Not Started
+**Priority:** P0 | **Points:** 3 | **Assignee:** Eng | **Status:** ✅ Done (PR #8)
 
 **Description:**
 Implement Fish Audio as a cost-effective TTS alternative behind the same provider abstraction.
