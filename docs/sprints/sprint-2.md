@@ -21,7 +21,7 @@ We need a fully functional CRE broker training demo that showcases:
 ## Stories
 
 ### S2-01: CRE Training Pack — Subjects & Scenarios
-**Priority:** P0 | **Points:** 5 | **Assignee:** Eng | **Status:** ⬜ To Do
+**Priority:** P0 | **Points:** 5 | **Assignee:** Eng | **Status:** ✅ Done
 
 **Description:**
 Create a complete CRE Training Pack with 5 stakeholder archetypes and 6 deal scenarios tailored for commercial real estate brokerage training.
@@ -54,7 +54,7 @@ Create a complete CRE Training Pack with 5 stakeholder archetypes and 6 deal sce
 ---
 
 ### S2-02: CRE ICP Pack — Multifamily Investment Market
-**Priority:** P0 | **Points:** 2 | **Assignee:** Eng | **Status:** ⬜ To Do
+**Priority:** P0 | **Points:** 2 | **Assignee:** Eng | **Status:** ✅ Done
 
 **Description:**
 Create a CRE-specific ICP Pack representing the multifamily investment market segment with industry-specific jargon, pain points, regulations, and buyer personas.
@@ -76,7 +76,7 @@ Create a CRE-specific ICP Pack representing the multifamily investment market se
 ---
 
 ### S2-03: CRE Product Pack — South Coast Commercial Services
-**Priority:** P0 | **Points:** 2 | **Assignee:** Eng | **Status:** ⬜ To Do
+**Priority:** P0 | **Points:** 2 | **Assignee:** Eng | **Status:** ✅ Done
 
 **Description:**
 Create a Product Pack representing South Coast Commercial's brokerage and property management services, including competitor positioning against CBRE, Marcus & Millichap, and Cushman & Wakefield.
@@ -100,7 +100,7 @@ Create a Product Pack representing South Coast Commercial's brokerage and proper
 ---
 
 ### S2-04: CRE Quick Demo Preset
-**Priority:** P0 | **Points:** 1 | **Assignee:** Eng | **Status:** ⬜ To Do
+**Priority:** P0 | **Points:** 1 | **Assignee:** Eng | **Status:** ✅ Done
 
 **Description:**
 Add a CRE-specific quick demo preset to the landing page for one-click launch into a Listing Presentation scenario with voice mode.
@@ -124,7 +124,7 @@ Add a CRE-specific quick demo preset to the landing page for one-click launch in
 ---
 
 ### S2-05: CRE Voice Mode Smoke Test
-**Priority:** P0 | **Points:** 2 | **Assignee:** Eng | **Status:** ⬜ To Do
+**Priority:** P0 | **Points:** 2 | **Assignee:** Eng | **Status:** ✅ Done (voice profiles + CRE debrief coaching)
 
 **Description:**
 End-to-end verification that the voice-first simulation pipeline works correctly with CRE content, including TTS voice selection, STT accuracy for CRE jargon, and natural conversation flow.
@@ -146,7 +146,7 @@ End-to-end verification that the voice-first simulation pipeline works correctly
 ---
 
 ### S2-06: CRE Stakeholder Profile Generation
-**Priority:** P1 | **Points:** 2 | **Assignee:** Eng | **Status:** ⬜ To Do
+**Priority:** P1 | **Points:** 2 | **Assignee:** Eng | **Status:** ✅ Done
 
 **Description:**
 Generate realistic individual profiles for each CRE subject archetype — unique names, backstories, personality traits, and physical descriptions using the existing AI stakeholder generation endpoint.

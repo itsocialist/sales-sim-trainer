@@ -284,6 +284,101 @@ export const ICP_PACKS: ICPPack[] = [
         ],
         aiContext: `This prospect is from a small e-commerce brand. They are scrappy, fast-moving, and cost-conscious. The founder or head of marketing is the decision-maker — no procurement team, no legal review for standard SaaS products. They expect self-serve onboarding and quick time-to-value (days, not weeks). They will compare you to free tools (Google Analytics, Shopify analytics) and lower-cost alternatives. The winning approach is showing immediate, tangible impact on their metrics (ROAS, CAC, conversion rate). Don't over-pitch enterprise features — they want simplicity and speed.`,
     },
+
+    // ============================================
+    // CRE MULTIFAMILY INVESTOR ICP
+    // ============================================
+    {
+        id: 'icp-cre-multifamily',
+        name: 'CRE Multifamily Investor',
+        icon: '🏗️',
+        description: 'Commercial real estate investors and owner-operators focused on multifamily properties in Southern California. Sophisticated buyers who speak in cap rates, NOI, and 1031 exchanges.',
+        companySize: '1-50 employees (family office / syndicator / owner-operator)',
+        revenueRange: '$5M - $500M AUM (Assets Under Management)',
+        vertical: {
+            name: 'Commercial Real Estate — Multifamily',
+            painPoints: [
+                'Cap rate compression making acquisitions increasingly difficult',
+                'Rising interest rates squeezing deal economics and DSCR ratios',
+                'Difficulty finding off-market opportunities before institutional buyers',
+                'Property management quality directly affecting NOI and asset value',
+                'Regulatory compliance burden (rent control, building codes, fair housing)',
+                'Tenant turnover costs eating into cash flow',
+                'Deferred maintenance accumulating faster than capital reserves',
+            ],
+            regulations: [
+                '1031 Exchange rules (IRS Section 1031)',
+                'Fair Housing Act compliance',
+                'ADA accessibility requirements',
+                'California rent control (AB 1482 / local ordinances)',
+                'Cal/OSHA workplace safety',
+                'Proposition 13 tax implications',
+                'Costa-Hawkins Rental Housing Act',
+            ],
+            jargon: [
+                'cap rate', 'NOI (Net Operating Income)', 'NNN (triple net)',
+                'GRM (Gross Rent Multiplier)', 'TI allowance', 'free rent concession',
+                'DSCR (Debt Service Coverage Ratio)', 'pro forma', 'value-add',
+                'stabilized yield', 'cost segregation', '1031 exchange',
+                'replacement property', 'qualified intermediary', 'boot',
+                'trailing 12', 'rent roll', 'CAM charges', 'base year stop',
+                'exit cap rate', 'going-in cap', 'IRR', 'cash-on-cash return',
+                'mark-to-market', 'loss-to-lease', 'effective gross income',
+            ],
+            budgetCycle: 'Deal-driven — acquisitions happen year-round based on opportunity, not fiscal calendar',
+        },
+        buyerPersonas: [
+            {
+                title: 'Principal Broker / Owner',
+                priorities: ['Deal flow quality', 'Market expertise in target submarket', 'Speed to close', 'Broker track record with comparable properties'],
+                commonObjections: ['Why should I use you vs. Marcus & Millichap?', 'Your commission is too high for this deal size', 'I already have relationships with other brokers'],
+                persuasionTriggers: ['Off-market deal access', 'Recent comparable sales data', 'Deep submarket knowledge', 'Speed and responsiveness'],
+                decisionStyle: 'Relationship-driven with data validation. Trusts brokers who demonstrate deep local expertise and deliver deal flow consistently.',
+            },
+            {
+                title: 'Director of Acquisitions',
+                priorities: ['IRR targets (15-20%)', 'Underwriting accuracy', 'Value-add potential', 'Market timing and exit strategy'],
+                commonObjections: ['The cap rate doesn\'t pencil at current rates', 'Your pro forma assumptions are too aggressive', 'Show me the trailing 12 before I waste time on pro forma'],
+                persuasionTriggers: ['Detailed submarket data', 'Comparable transaction evidence', 'Creative deal structuring', 'First-look opportunities'],
+                decisionStyle: 'Analytical and numbers-first. Will not proceed without solid underwriting. Responds to data quality and speed of information delivery.',
+            },
+            {
+                title: 'Property Manager / Asset Manager',
+                priorities: ['Vacancy reduction', 'Maintenance cost control', 'Tenant retention', 'Reporting quality and frequency'],
+                commonObjections: ['My current PM charges less', 'Switching PMs is too disruptive', 'How do I know your vacancy numbers are real?'],
+                persuasionTriggers: ['Specific vacancy reduction case studies', 'Technology platform demos', 'In-house maintenance team', 'Transparent reporting'],
+                decisionStyle: 'Performance-driven. Wants to see actual numbers from comparable properties, not promises. Values accountability and communication.',
+            },
+            {
+                title: '1031 Exchange Investor',
+                priorities: ['Timeline compliance (45-day / 180-day)', 'Property qualification', 'Tax deferral maximization', 'Avoiding boot'],
+                commonObjections: ['I don\'t have time to evaluate properly', 'How do I know this property qualifies?', 'My QI says the timeline is tight'],
+                persuasionTriggers: ['1031 expertise and track record', 'Pre-qualified replacement properties ready to go', 'QI coordination experience', 'Understanding of tax implications'],
+                decisionStyle: 'Urgency-driven by IRS deadlines. Will move fast with a broker who demonstrates competence and removes friction from the process.',
+            },
+        ],
+        salesCycleLength: '30-120 days (listing to close)',
+        avgDealSize: '$50K - $500K+ commission (based on transaction volume)',
+        buyingTriggers: [
+            'Property approaching a major capital expenditure cycle',
+            'Owner retirement or estate planning event',
+            'Rent control legislation creating urgency to sell',
+            'Interest rate shifts creating buying/selling windows',
+            'Portfolio rebalancing or geographic repositioning',
+            '1031 exchange deadline creating urgency',
+            'Property management frustration reaching breaking point',
+        ],
+        dealBlockers: [
+            'Unrealistic pricing expectations from seller',
+            'Title issues or unresolved liens',
+            'Deferred maintenance worse than disclosed',
+            'Rising interest rates killing deal economics',
+            'Competing broker with existing relationship',
+            'Tenant issues (occupied units, lease complications)',
+            'Environmental concerns (asbestos, soil contamination)',
+        ],
+        aiContext: `This prospect is a commercial real estate investor or owner-operator in Southern California. They speak fluently in cap rates, NOI, DSCR, and 1031 exchanges. They are sophisticated and will immediately test the broker's market knowledge. Use SoCal-specific references: Orange County, San Diego, Inland Empire submarkets. Reference current market conditions: interest rate environment, cap rate trends, rent growth in specific zip codes. The winning approach is demonstrating deep local expertise, providing data-backed market insights, and showing a track record of closed transactions in comparable asset classes. Never BS the numbers — these prospects verify everything. Relationship and trust matter more than slick presentations.`,
+    },
 ];
 
 /**

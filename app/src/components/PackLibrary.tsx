@@ -13,18 +13,22 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { type ProductPack, PRODUCT_PACKS } from '@/lib/packs/productPacks';
 import { type ICPPack, ICP_PACKS } from '@/lib/packs/icpPacks';
 import { TRAINING_PACKS } from '@/lib/packs/trainingPacks';
 import {
     getSavedProducts, saveProduct, deleteProduct,
     getSavedICPs, saveICP, deleteICP,
+    getAllTrainingPacks, getSavedTrainingPacks,
+    getSavedBundles, installBundle, uninstallBundle,
+    exportBundleAsJSON, parseBundleFromJSON,
+    type IndustryPackBundle,
 } from '@/lib/packs/packStore';
 import ProductSetup from './ProductSetup';
 import ICPBuilder from './ICPBuilder';
 
-type Tab = 'products' | 'icps' | 'training';
+type Tab = 'products' | 'icps' | 'training' | 'bundles';
 
 interface PackLibraryProps {
     onClose: () => void;
@@ -37,11 +41,14 @@ export default function PackLibrary({ onClose }: PackLibraryProps) {
     const [showProductCreator, setShowProductCreator] = useState(false);
     const [showICPCreator, setShowICPCreator] = useState(false);
     const [expandedPack, setExpandedPack] = useState<string | null>(null);
+    const [bundles, setBundles] = useState<IndustryPackBundle[]>([]);
+    const bundleInputRef = useRef<HTMLInputElement>(null);
 
     // Load saved packs from localStorage
     useEffect(() => {
         setCustomProducts(getSavedProducts());
         setCustomICPs(getSavedICPs());
+        setBundles(getSavedBundles());
     }, []);
 
     const handleSaveProduct = useCallback((pack: ProductPack) => {
@@ -84,7 +91,8 @@ export default function PackLibrary({ onClose }: PackLibraryProps) {
     const tabs: { id: Tab; label: string; icon: string; count: number }[] = [
         { id: 'products', label: 'Products', icon: '📦', count: PRODUCT_PACKS.length + customProducts.length },
         { id: 'icps', label: 'Buyer Profiles', icon: '🎯', count: ICP_PACKS.length + customICPs.length },
-        { id: 'training', label: 'Training Roles', icon: '🎓', count: TRAINING_PACKS.length },
+        { id: 'training', label: 'Training Roles', icon: '🎓', count: getAllTrainingPacks().length },
+        { id: 'bundles' as Tab, label: 'Industry Bundles', icon: '📦', count: bundles.length },
     ];
 
     return (
@@ -306,7 +314,7 @@ export default function PackLibrary({ onClose }: PackLibraryProps) {
                         </div>
 
                         <div className="space-y-6">
-                            {TRAINING_PACKS.map(pack => (
+                            {getAllTrainingPacks().map(pack => (
                                 <div
                                     key={pack.id}
                                     className="p-5"
@@ -403,6 +411,195 @@ export default function PackLibrary({ onClose }: PackLibraryProps) {
                                 </div>
                             ))}
                         </div>
+                    </div>
+                )}
+
+                {/* ── BUNDLES TAB ── */}
+                {activeTab === 'bundles' && (
+                    <div>
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-sm uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                                    Industry Pack Bundles
+                                </h2>
+                                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                                    Import a JSON bundle to install Training + ICP + Product packs for any industry
+                                </p>
+                            </div>
+                            <div className="flex gap-2">
+                                <input
+                                    ref={bundleInputRef}
+                                    type="file"
+                                    accept=".json"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        const reader = new FileReader();
+                                        reader.onload = (ev) => {
+                                            const text = ev.target?.result as string;
+                                            const bundle = parseBundleFromJSON(text);
+                                            if (bundle) {
+                                                installBundle(bundle);
+                                                setBundles(getSavedBundles());
+                                                setCustomProducts(getSavedProducts());
+                                                setCustomICPs(getSavedICPs());
+                                                alert(`✅ Installed "${bundle.meta.name}" bundle`);
+                                            } else {
+                                                alert('❌ Invalid bundle file. Please check the JSON format.');
+                                            }
+                                        };
+                                        reader.readAsText(file);
+                                        e.target.value = '';
+                                    }}
+                                />
+                                <button
+                                    onClick={() => bundleInputRef.current?.click()}
+                                    className="btn-primary px-4 py-2 text-xs font-semibold"
+                                >
+                                    📥 Import Bundle
+                                </button>
+                            </div>
+                        </div>
+
+                        {bundles.length === 0 ? (
+                            <div
+                                className="p-8 text-center"
+                                style={{
+                                    background: 'var(--bg-secondary)',
+                                    border: '2px dashed var(--border-color)',
+                                }}
+                            >
+                                <div className="text-3xl mb-3">📦</div>
+                                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                                    No custom bundles installed
+                                </div>
+                                <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                                    Import a <code>.json</code> bundle file to add a complete industry pack
+                                    (Training roles + Buyer profile + Product/service)
+                                </div>
+                                <div className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
+                                    Built-in packs (Tech Sales, CRE) are always available — bundles add new industries
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {bundles.map(bundle => (
+                                    <div
+                                        key={bundle.id}
+                                        className="p-5"
+                                        style={{
+                                            background: 'var(--bg-secondary)',
+                                            border: '1px solid var(--border-color)',
+                                        }}
+                                    >
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-2xl">{bundle.meta.icon}</span>
+                                                    <div>
+                                                        <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                                                            {bundle.meta.name}
+                                                        </div>
+                                                        <div className="text-xs" style={{ color: 'var(--accent-primary)' }}>
+                                                            {bundle.meta.industry}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+                                                    {bundle.meta.description}
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => exportBundleAsJSON(bundle)}
+                                                    className="text-xs px-3 py-1"
+                                                    style={{
+                                                        border: '1px solid var(--border-color)',
+                                                        color: 'var(--text-secondary)',
+                                                    }}
+                                                >
+                                                    📤 Export
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        if (confirm(`Remove "${bundle.meta.name}" bundle and its packs?`)) {
+                                                            uninstallBundle(bundle.id);
+                                                            setBundles(getSavedBundles());
+                                                            setCustomProducts(getSavedProducts());
+                                                            setCustomICPs(getSavedICPs());
+                                                        }
+                                                    }}
+                                                    className="text-xs px-3 py-1"
+                                                    style={{
+                                                        border: '1px solid rgba(239,68,68,0.3)',
+                                                        color: '#ef4444',
+                                                        background: 'rgba(239,68,68,0.05)',
+                                                    }}
+                                                >
+                                                    Uninstall
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-3 gap-3 mt-3">
+                                            <div className="p-3" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                                                <div className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Training</div>
+                                                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                                                    {bundle.trainingPack.icon} {bundle.trainingPack.name}
+                                                </div>
+                                                <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                                                    {bundle.trainingPack.subjectPacks.length} stakeholders · {bundle.trainingPack.scenarioPacks.length} scenarios
+                                                </div>
+                                            </div>
+                                            <div className="p-3" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                                                <div className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Buyer Profile</div>
+                                                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                                                    {bundle.icpPack.icon} {bundle.icpPack.name}
+                                                </div>
+                                                <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                                                    {bundle.icpPack.vertical.name}
+                                                </div>
+                                            </div>
+                                            <div className="p-3" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                                                <div className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Product/Service</div>
+                                                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                                                    {bundle.productPack.icon} {bundle.productPack.name}
+                                                </div>
+                                                <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                                                    {bundle.productPack.company}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-2 mt-3">
+                                            {bundle.meta.tags?.map(tag => (
+                                                <span key={tag} className="text-xs px-2 py-0.5" style={{
+                                                    background: 'rgba(63,212,151,0.1)',
+                                                    color: 'var(--accent-primary)',
+                                                }}>
+                                                    {tag}
+                                                </span>
+                                            ))}
+                                            {bundle.meta.locale && (
+                                                <span className="text-xs px-2 py-0.5" style={{
+                                                    background: 'rgba(96,165,250,0.15)',
+                                                    color: '#60a5fa',
+                                                }}>
+                                                    🌐 {bundle.meta.locale}
+                                                </span>
+                                            )}
+                                            <span className="text-xs px-2 py-0.5" style={{
+                                                background: 'rgba(255,255,255,0.05)',
+                                                color: 'var(--text-muted)',
+                                            }}>
+                                                v{bundle.version}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

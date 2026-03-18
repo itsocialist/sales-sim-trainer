@@ -269,6 +269,107 @@ export const PRODUCT_PACKS: ProductPack[] = [
         },
         aiContext: `The rep is selling TalentMetrics People Analytics Suite. They should understand HR pain points: attrition, engagement, DEI reporting, and workforce planning. Position as "predictive, not reactive" HR. Key metric: 85% attrition prediction accuracy. Handle privacy objections carefully. Competitor: Visier (we're faster to implement, better UX).`,
     },
+
+    // ============================================
+    // CRE BROKERAGE & PM SERVICES
+    // ============================================
+    {
+        id: 'prod-southcoast-cre',
+        name: 'CRE Brokerage & PM Services',
+        icon: '🏗️',
+        tagline: 'Full-service commercial real estate brokerage and property management in Southern California',
+        company: 'South Coast Commercial',
+        category: 'Commercial Real Estate Services',
+        description: 'A full-service CRE brokerage and property management firm specializing in multifamily properties across Southern California. Services include investment sales, listing representation, tenant representation, 1031 exchange advisory, property management, asset management consulting, and market research. Deep expertise in Orange County, San Diego, and Inland Empire submarkets.',
+        valueProps: [
+            'Deep Southern California multifamily market expertise with 15+ years of local transaction history',
+            'Full-service platform: brokerage + property management + asset management under one roof',
+            '1031 exchange specialist with established qualified intermediary network and pre-qualified replacement inventory',
+            'In-house maintenance team delivering 2-hour emergency response (vs. 24-48 hour industry average)',
+            'Data-driven marketing: professional photography, 3D Matterport tours, targeted investor syndication, and social media campaigns',
+        ],
+        features: [
+            {
+                name: 'Investment Sales Brokerage',
+                description: 'Full-service listing and buyer representation for multifamily acquisitions and dispositions',
+                painMapping: 'Owners who need to sell or reposition assets need a broker with deep market access and buyer relationships',
+                differentiator: false,
+            },
+            {
+                name: 'Proprietary Buyer Database',
+                description: 'Database of 2,000+ active, qualified multifamily buyers across SoCal with verified purchase criteria',
+                painMapping: 'Sellers want maximum exposure to serious buyers, not tire-kickers',
+                differentiator: true,
+            },
+            {
+                name: '1031 Exchange Advisory',
+                description: 'End-to-end 1031 exchange guidance including QI coordination, replacement property identification, and timeline management',
+                painMapping: 'Investors need a broker who understands 1031 mechanics and can move fast under IRS deadlines',
+                differentiator: true,
+            },
+            {
+                name: 'Property Management',
+                description: 'Full-service PM including tenant screening, rent collection, maintenance, and monthly financial reporting',
+                painMapping: 'Owners frustrated with high vacancy, slow maintenance, and poor communication from current PM',
+                differentiator: false,
+            },
+            {
+                name: 'In-House Maintenance Team',
+                description: 'Dedicated maintenance staff (not outsourced) for faster response times and quality control',
+                painMapping: 'Maintenance delays cause tenant turnover, which kills NOI',
+                differentiator: true,
+            },
+            {
+                name: 'Market Intelligence Reports',
+                description: 'Quarterly submarket reports with cap rate trends, rent comps, vacancy analysis, and transaction volume',
+                painMapping: 'Investors need accurate, hyperlocal data to make acquisition and pricing decisions',
+                differentiator: false,
+            },
+        ],
+        pricing: [
+            { name: 'Listing Commission', price: '4-6%', unit: 'of sale price (split with buyer broker)', features: ['Full marketing package', 'Professional photography & 3D tours', 'Buyer database syndication', 'Negotiation & closing coordination'] },
+            { name: 'Property Management', price: '5-8%', unit: 'of collected rent monthly', features: ['Tenant screening & placement', 'Rent collection & disbursement', 'Maintenance coordination', 'Monthly financial reporting'] },
+            { name: 'Asset Management Consulting', price: '$2,500-5,000', unit: 'per month', features: ['NOI optimization analysis', 'Capital improvement planning', 'Rent survey & mark-to-market', 'Disposition strategy'] },
+        ],
+        competitors: [
+            {
+                name: 'CBRE',
+                commonReference: '"We\'re talking to CBRE about this listing"',
+                ourAdvantage: 'Hyperlocal SoCal expertise — we know every submarket block by block. Personal service, not a corporate machine. Faster response times.',
+                theirAdvantage: 'Global brand recognition, larger institutional buyer network, more research resources',
+                counterPositioning: 'CBRE is great for $50M+ institutional deals. For deals under $20M, your listing gets lost in their pipeline. We make every deal our top priority because that\'s our sweet spot.',
+            },
+            {
+                name: 'Marcus & Millichap',
+                commonReference: '"My neighbor sold through Marcus & Millichap"',
+                ourAdvantage: 'Full-service (brokerage + PM + asset management). M&M is brokerage-only — once you sell, they\'re gone. We manage the full lifecycle.',
+                theirAdvantage: 'Largest volume of multifamily transactions nationally, strong brand in investment sales',
+                counterPositioning: 'Marcus & Millichap has great national reach, but their local agents turn over frequently. We\'ve been in this market for 15 years with the same team. Continuity matters when your asset is on the line.',
+            },
+            {
+                name: 'Cushman & Wakefield',
+                commonReference: '"Cushman has a big office nearby"',
+                ourAdvantage: 'More competitive commission structure, faster marketing turnaround, owner-operator mentality vs. corporate bureaucracy',
+                theirAdvantage: 'Larger research department, corporate tenant relationships, commercial office strength',
+                counterPositioning: 'Cushman\'s strength is office and industrial. Multifamily is our DNA — it\'s all we do. When your entire portfolio is apartments, you want a specialist, not a generalist.',
+            },
+            {
+                name: 'Local Boutique Firms',
+                commonReference: '"There\'s a local broker who charges less"',
+                ourAdvantage: 'Professional marketing materials, broader buyer network, in-house PM capability, established QI relationships',
+                theirAdvantage: 'Lower commission rates, personal relationships, fewer layers',
+                counterPositioning: 'A lower commission means nothing if the property sits on market 90 days longer. Our average days-on-market is 45 — that\'s 30-60 days faster than most boutique firms. Time is money in CRE.',
+            },
+        ],
+        objectionHandling: {
+            'Why not go with a national brand like CBRE?': 'National brands are great for $50M+ deals. For properties in our sweet spot ($2M-$20M), you\'ll get more attention, faster response, and someone who knows your submarket block by block. We\'ve closed 200+ transactions in this market — that\'s not a national average, that\'s right here.',
+            'Your commission is too high': 'I hear you. Let me show you the math: our average sale price is 8% higher than the submarket average because of our marketing reach and buyer network. On a $5M property, that\'s $400K more in your pocket — far more than the commission difference.',
+            'I can manage my own property': 'Many owners can and do. The question is whether your time is better spent finding the next deal or handling 2am maintenance calls. Our clients typically see a 3-5% NOI increase within the first year because we optimize rents, reduce vacancy, and control maintenance costs.',
+            'What\'s your track record?': 'In the last 12 months: 47 transactions closed, average 45 days on market, sale prices averaging 4% above initial list price. I can share specific comps in your submarket — would that be helpful?',
+            'I already have a broker relationship': 'I respect that. Most of our clients came from other brokerages. What I\'d ask is: are you getting quarterly market updates? A proactive call when a comparable property sells in your area? Data-driven pricing that maximizes your return? If not, it\'s worth a conversation.',
+        },
+        aiContext: `The rep is a commercial real estate broker selling brokerage and property management services. They should demonstrate deep knowledge of Southern California multifamily market conditions: current cap rates (4.5-5.5% for stabilized multifamily in OC), interest rate impact on deal economics, recent comparable transactions, and submarket trends. Key differentiators: hyperlocal expertise, full-service platform (brokerage + PM + asset management), 1031 exchange specialization, and in-house maintenance team. The rep should speak fluently in CRE terminology: cap rate, NOI, DSCR, pro forma, trailing 12, rent roll, TI, NNN, GRM, cost segregation, 1031 exchange mechanics. Position against national brands (CBRE, M&M, C&W) by emphasizing personalized service and local market depth. Always lead with data and comps, not credentials.`,
+    },
 ];
 
 /**
