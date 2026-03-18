@@ -1,7 +1,7 @@
 # Sprint 1 — Voice & Foundation
 **Sprint Duration:** Mar 18 – Mar 31, 2026  
 **Sprint Goal:** Enable voice-first simulation with ElevenLabs/Fish Audio and lay infrastructure groundwork.  
-**Status:** 🟢 ACTIVE
+**Status:** ✅ CLOSED (Tagged v0.1.0)
 
 ---
 
