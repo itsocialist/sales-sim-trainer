@@ -1,28 +1,29 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
-/* Iron Bank Design System */
+/* Iron Bank Design System — v2 */
 :root {
   /* Colors */
   --bg-primary: #000000;
-  --bg-secondary: #0d0d0d;
+  --bg-secondary: #0a0a0a;
   --bg-card: #111111;
   --bg-input: #1a1a1a;
   
   --accent-primary: #3FD497;
   --accent-hover: #5ae3ab;
   
-  --text-primary: #ffffff;
-  --text-secondary: #a0a0a0;
-  --text-muted: #666666;
+  --text-primary: #f0f0f0;
+  --text-secondary: #b0b0b0;
+  --text-muted: #707070;
   
-  --border-color: #2a2a2a;
+  --border-color: #222222;
   --border-accent: #3FD497;
   
-  /* Typography */
-  --font-main: 'Space Grotesk', 'Avenir', 'Montserrat', sans-serif;
+  /* Typography — Inter for UI, JetBrains Mono for data */
+  --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Menlo', monospace;
   
-  /* No rounded corners - Iron Bank uses sharp edges */
+  /* Sharp edges */
   --radius: 0px;
 }
 
@@ -30,8 +31,22 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-main);
+  font-size: 14px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+/* Monospace elements */
+.font-mono, code, pre, [class*="mono"] {
+  font-family: var(--font-mono);
 }
 
 /* Button Styles */
@@ -39,15 +54,24 @@ body {
   background: var(--accent-primary);
   color: #000000;
   font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.02em;
   border: none;
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 .btn-primary:hover {
   background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+.btn-primary:active {
+  transform: translateY(0);
 }
 .btn-primary:disabled {
   background: var(--bg-input);
   color: var(--text-muted);
+  transform: none;
+  cursor: not-allowed;
 }
 
 .btn-secondary {
@@ -55,7 +79,10 @@ body {
   color: var(--text-primary);
   border: 1px solid var(--border-color);
   font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.02em;
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 .btn-secondary:hover {
   border-color: var(--accent-primary);
@@ -73,6 +100,7 @@ body {
   background: var(--bg-input);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
+  font-size: 14px;
   transition: border-color 0.2s ease;
 }
 .input:focus {
@@ -88,6 +116,7 @@ select {
   background: var(--bg-input);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
+  font-size: 14px;
 }
 select:focus {
   border-color: var(--accent-primary);
@@ -98,9 +127,9 @@ select:focus {
 .label-accent {
   color: var(--accent-primary);
   text-transform: uppercase;
-  font-size: 0.75rem;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
 }
 
 /* Message Bubbles */
@@ -119,12 +148,38 @@ select:focus {
 .score-mid { color: #f59e0b; }
 .score-low { color: #ef4444; }
 
+/* Context Bar — improved readability */
+.context-bar {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 12px 20px;
+}
+.context-bar .context-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+  margin-bottom: 3px;
+}
+.context-bar .context-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+.context-bar .context-detail {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: var(--border-color);
@@ -146,4 +201,19 @@ select:focus {
   0% { transform: scale(1); opacity: 0.5; }
   50% { transform: scale(1.15); opacity: 0; }
   100% { transform: scale(1.3); opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Improved score display */
+.score-display {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }

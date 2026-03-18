@@ -9,6 +9,7 @@ import AudioPlayer from './AudioPlayer';
 import SubjectAvatar from './SubjectAvatar';
 import VoiceInput from './VoiceInput';
 import VoiceFirstOverlay from './VoiceFirstOverlay';
+import VoiceDuplexOverlay from './VoiceDuplexOverlay';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -19,6 +20,8 @@ interface Message {
 interface SimulationChatProps {
     config: SimulationConfig;
     onEndSession: (messages: Message[], scenarioContext: string, intoxicationLevel: string) => void;
+    /** Auto-enter voice mode on mount (for demo presets) */
+    autoVoice?: boolean;
 }
 
 // Analyze rep's sales approach based on message content
@@ -53,7 +56,7 @@ function analyzeRepApproach(message: string): number {
     return Math.max(1, Math.min(10, Math.round(pushiness)));
 }
 
-export default function SimulationChat({ config, onEndSession }: SimulationChatProps) {
+export default function SimulationChat({ config, onEndSession, autoVoice }: SimulationChatProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -64,7 +67,7 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
     const [officerTone, setOfficerTone] = useState(5); // Start neutral
     const [behaviorDescription, setBehaviorDescription] = useState('');
     const [sessionId] = useState(`session-${Date.now()}`);
-    const [voiceMode, setVoiceMode] = useState(false);
+    const [voiceMode, setVoiceMode] = useState(autoVoice || false);
     const [lastAssistantMessage, setLastAssistantMessage] = useState('');
     const [hasInitialGreeting, setHasInitialGreeting] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -384,20 +387,25 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
         <div className="flex flex-col h-screen" style={{ background: 'var(--bg-primary)' }}>
             {/* Voice-First Overlay */}
             {voiceMode && (
-                <VoiceFirstOverlay
+                <VoiceDuplexOverlay
+                    config={config}
                     subjectName={config.subject.name}
                     subjectTitle={(config.subject as unknown as { title: string }).title || 'Prospect'}
-                    lastAssistantMessage={lastAssistantMessage}
-                    isStreaming={!!streamingContent}
-                    streamingText={streamingContent}
-                    onUserSpeak={sendVoiceMessage}
-                    onExitVoiceMode={() => setVoiceMode(false)}
                     sessionTime={sessionTime}
                     rapport={Math.round(10 - temperature)}
-                    isLoading={isLoading}
-                    subjectCondition={stakeholderVoiceKey}
                     behaviorDescription={behaviorDescription}
-                    config={config}
+                    onExitVoiceMode={() => setVoiceMode(false)}
+                    onTranscript={(role, text) => {
+                        const msg: Message = {
+                            role: role === 'user' ? 'user' : 'assistant',
+                            content: text,
+                            timestamp: new Date(),
+                        };
+                        setMessages(prev => [...prev, msg]);
+                        if (role === 'assistant') {
+                            setLastAssistantMessage(text);
+                        }
+                    }}
                 />
             )}
             {/* Context Display */}
