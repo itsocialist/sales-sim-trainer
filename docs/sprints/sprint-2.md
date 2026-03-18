@@ -146,7 +146,7 @@ End-to-end verification that the voice-first simulation pipeline works correctly
 ---
 
 ### S2-06: CRE Stakeholder Profile Generation
-**Priority:** P1 | **Points:** 2 | **Assignee:** Eng | **Status:** ⬜ To Do
+**Priority:** P1 | **Points:** 2 | **Assignee:** Eng | **Status:** ✅ Done
 
 **Description:**
 Generate realistic individual profiles for each CRE subject archetype — unique names, backstories, personality traits, and physical descriptions using the existing AI stakeholder generation endpoint.
