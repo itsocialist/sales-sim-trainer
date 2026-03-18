@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { type SimulationConfig } from './PackSelector';
 
 interface VoiceFirstOverlayProps {
     /** Current stakeholder name */
@@ -25,6 +26,10 @@ interface VoiceFirstOverlayProps {
     isLoading: boolean;
     /** Stakeholder condition for voice matching */
     subjectCondition?: string;
+    /** Current behavior description */
+    behaviorDescription?: string;
+    /** Full config for context display */
+    config?: SimulationConfig;
 }
 
 /**
@@ -68,6 +73,8 @@ export default function VoiceFirstOverlay({
     rapport,
     isLoading,
     subjectCondition,
+    behaviorDescription,
+    config,
 }: VoiceFirstOverlayProps) {
     const [voiceState, setVoiceState] = useState<VoiceState>('listening');
     const [transcript, setTranscript] = useState('');
@@ -83,6 +90,8 @@ export default function VoiceFirstOverlay({
     const mountedRef = useRef(true);
     const isListeningRef = useRef(false);
     const stateRef = useRef<VoiceState>('listening');
+    const ttsAbortRef = useRef<AbortController | null>(null);
+    const audioSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
 
     // Keep stateRef in sync
     useEffect(() => {
@@ -185,17 +194,52 @@ export default function VoiceFirstOverlay({
         };
     }, []);
 
+    // ── STOP TTS — completely clean up audio to prevent overlap ──
+    const stopTTS = useCallback(() => {
+        // Abort any in-flight TTS fetch
+        if (ttsAbortRef.current) {
+            ttsAbortRef.current.abort();
+            ttsAbortRef.current = null;
+        }
+        // Stop and clean up audio element
+        if (audioRef.current) {
+            try {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+                audioRef.current.onended = null;
+                audioRef.current.onerror = null;
+                // Revoke the blob URL if it exists
+                if (audioRef.current.src && audioRef.current.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(audioRef.current.src);
+                }
+                audioRef.current.removeAttribute('src');
+            } catch { /* ok */ }
+            audioRef.current = null;
+        }
+        // Reset analyser (don't destroy AudioContext — it can be reused)
+        analyserRef.current = null;
+        audioSourceRef.current = null;
+    }, []);
+
     // ── TTS Playback ──
     const playTTS = useCallback(async (text: string) => {
         try {
+            // CRITICAL: Stop any existing audio BEFORE starting new TTS
+            stopTTS();
+
             // Stop any current listening before speaking
             stopListeningQuiet();
 
             setVoiceState('speaking');
 
+            // Create abort controller for this TTS request
+            const abortController = new AbortController();
+            ttsAbortRef.current = abortController;
+
             const response = await fetch('/api/tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                signal: abortController.signal,
                 body: JSON.stringify({
                     text,
                     subjectCondition,
@@ -203,13 +247,20 @@ export default function VoiceFirstOverlay({
                 }),
             });
 
+            // Check if we were aborted during fetch
+            if (abortController.signal.aborted) return;
+
             if (!response.ok) throw new Error('TTS failed');
 
             const audioBlob = await response.blob();
+
+            // Check again after blob download
+            if (abortController.signal.aborted) return;
+
             const audioUrl = URL.createObjectURL(audioBlob);
 
             // Setup audio context for visualizer
-            if (!audioContextRef.current) {
+            if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
                 audioContextRef.current = new AudioContext();
             }
 
@@ -217,7 +268,9 @@ export default function VoiceFirstOverlay({
             audioRef.current = audio;
 
             // Connect to analyser for visualizer
+            // Each Audio element can only have ONE source node — track and reuse
             const source = audioContextRef.current.createMediaElementSource(audio);
+            audioSourceRef.current = source;
             const analyser = audioContextRef.current.createAnalyser();
             analyser.fftSize = 128;
             source.connect(analyser);
@@ -226,6 +279,8 @@ export default function VoiceFirstOverlay({
 
             audio.onended = () => {
                 URL.revokeObjectURL(audioUrl);
+                audioRef.current = null;
+                audioSourceRef.current = null;
                 if (mountedRef.current) {
                     // FULL DUPLEX: immediately start listening after TTS ends
                     startListening();
@@ -234,6 +289,8 @@ export default function VoiceFirstOverlay({
 
             audio.onerror = () => {
                 URL.revokeObjectURL(audioUrl);
+                audioRef.current = null;
+                audioSourceRef.current = null;
                 if (mountedRef.current) {
                     startListening();
                 }
@@ -242,13 +299,15 @@ export default function VoiceFirstOverlay({
             await audioContextRef.current.resume();
             await audio.play();
         } catch (error) {
+            // Don't log abort errors — they're expected
+            if (error instanceof Error && error.name === 'AbortError') return;
             console.error('Voice-first TTS error:', error);
             if (mountedRef.current) {
                 startListening();
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [subjectCondition, subjectName]);
+    }, [subjectCondition, subjectName, stopTTS]);
 
     // ── STT Listening ──
     const startListening = useCallback(() => {
@@ -359,7 +418,7 @@ export default function VoiceFirstOverlay({
                 }
             }, 500);
         }
-    }, [onUserSpeak, onExitVoiceMode]);
+    }, [onUserSpeak, onExitVoiceMode, stopTTS]);
 
     const stopListeningQuiet = useCallback(() => {
         isListeningRef.current = false;
@@ -373,17 +432,7 @@ export default function VoiceFirstOverlay({
         stopListeningQuiet();
     }, [stopListeningQuiet]);
 
-    const stopTTS = useCallback(() => {
-        if (audioRef.current) {
-            try {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
-            } catch { /* ok */ }
-            audioRef.current = null;
-        }
-    }, []);
-
-    // Interrupt: user taps mic while AI is speaking → cut TTS, start listening
+    // Interrupt: user taps while AI is speaking → cut TTS, start listening
     const handleInterrupt = useCallback(() => {
         if (voiceState === 'speaking') {
             stopTTS();
@@ -414,15 +463,15 @@ export default function VoiceFirstOverlay({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex flex-col items-center justify-between"
-            style={{ background: 'var(--bg-primary)' }}
+            className="fixed inset-0 z-50 flex flex-col"
+            style={{ background: 'rgba(10, 12, 16, 0.88)', backdropFilter: 'blur(6px)' }}
             id="voice-first-overlay"
             onClick={voiceState === 'speaking' ? handleInterrupt : undefined}
         >
             {/* Top bar */}
             <div
-                className="w-full px-8 py-4 flex justify-between items-center border-b"
-                style={{ borderColor: 'var(--border-color)' }}
+                className="w-full px-8 py-3 flex justify-between items-center border-b"
+                style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.4)' }}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div>
@@ -467,8 +516,55 @@ export default function VoiceFirstOverlay({
                 </div>
             </div>
 
+            {/* Situational context — always visible through the overlay */}
+            {config && (
+                <div
+                    className="w-full px-8 py-2 border-b"
+                    style={{
+                        borderColor: 'rgba(255,255,255,0.06)',
+                        background: 'rgba(0,0,0,0.3)',
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="flex items-center gap-8 text-xs">
+                        <div>
+                            <span style={{ color: 'var(--text-muted)' }}>SELLING: </span>
+                            <span style={{ color: 'var(--text-primary)' }}>{config.productPack.name}</span>
+                        </div>
+                        <div>
+                            <span style={{ color: 'var(--text-muted)' }}>BUYER: </span>
+                            <span style={{ color: 'var(--text-primary)' }}>{config.icpPack.name}</span>
+                        </div>
+                        <div>
+                            <span style={{ color: 'var(--text-muted)' }}>SCENARIO: </span>
+                            <span style={{ color: 'var(--text-primary)' }}>{config.scenarioPack.name}</span>
+                        </div>
+                        <div>
+                            <span style={{ color: 'var(--text-muted)' }}>ROLE: </span>
+                            <span style={{ color: 'var(--accent-primary)' }}>{config.trainingPack.targetRole}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Behavior cue — always visible */}
+            {behaviorDescription && (
+                <div
+                    className="w-full px-8 py-2 border-b text-center"
+                    style={{
+                        borderColor: 'rgba(255,255,255,0.04)',
+                        background: 'rgba(245, 158, 11, 0.06)',
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <span className="text-xs italic" style={{ color: '#f59e0b' }}>
+                        ✦ {behaviorDescription}
+                    </span>
+                </div>
+            )}
+
             {/* Center area — visualizer and transcript */}
-            <div className="flex-1 flex flex-col items-center justify-center gap-8 px-8" style={{ maxWidth: 700 }}>
+            <div className="flex-1 flex flex-col items-center justify-center gap-8 px-8" style={{ maxWidth: 700, margin: '0 auto', width: '100%' }}>
                 {/* Current transcript / response */}
                 <div className="text-center min-h-[80px] max-h-[200px] overflow-y-auto">
                     {voiceState === 'listening' && interimTranscript && (
@@ -499,7 +595,7 @@ export default function VoiceFirstOverlay({
                 </div>
 
                 {/* Audio Visualizer — larger, more prominent */}
-                <div className="flex items-end justify-center gap-1.5" style={{ height: 140, width: '100%' }}>
+                <div className="flex items-end justify-center gap-1.5" style={{ height: 120, width: '100%' }}>
                     {visualizerValues.map((val, i) => (
                         <div
                             key={i}
@@ -539,8 +635,21 @@ export default function VoiceFirstOverlay({
                 </div>
             </div>
 
-            {/* Bottom — status indicator (no button needed in duplex) */}
-            <div className="pb-8 flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
+            {/* Bottom — Scenario context hint + status */}
+            <div className="pb-6 flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                {/* Scenario context clue */}
+                {config && (
+                    <div
+                        className="px-6 py-2 text-xs text-center max-w-lg"
+                        style={{
+                            color: 'var(--text-muted)',
+                            background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid rgba(255,255,255,0.06)',
+                        }}
+                    >
+                        {config.scenarioPack.context}
+                    </div>
+                )}
                 <div className="flex items-center gap-3">
                     <div
                         className="w-3 h-3"

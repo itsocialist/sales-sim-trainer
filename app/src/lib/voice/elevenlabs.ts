@@ -28,13 +28,17 @@ export class ElevenLabsProvider implements TTSProvider {
         const voiceId = voiceProfile.elevenlabsVoiceId;
         const settings = voiceProfile.elevenlabsSettings;
 
-        // Select model based on text length (v2 for short, turbo for long)
-        const modelId = text.length > 500
+        // Use eleven_v3 for dialog (most natural conversational prosody)
+        // Fall back to turbo for very long responses where latency matters more
+        const modelId = text.length > 800
             ? 'eleven_turbo_v2_5'
-            : 'eleven_multilingual_v2';
+            : 'eleven_v3';
+
+        // Add latency optimization for real-time dialog (level 2 = 75% improvement)
+        const optimizeLatency = text.length < 300 ? 2 : 1;
 
         const response = await fetch(
-            `${ELEVENLABS_API_BASE}/text-to-speech/${voiceId}`,
+            `${ELEVENLABS_API_BASE}/text-to-speech/${voiceId}?optimize_streaming_latency=${optimizeLatency}`,
             {
                 method: 'POST',
                 headers: {

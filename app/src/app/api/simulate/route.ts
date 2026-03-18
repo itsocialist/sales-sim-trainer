@@ -164,28 +164,36 @@ RESPONSE FORMAT:
 Your response MUST be valid JSON with exactly this structure:
 {
   "behavior": "Your internal state, body language, and what you're doing during the call",
-  "statements": ["First thing you say", "Second thing", "Third thing"]
+  "statements": ["What you say"]
 }
 
 BEHAVIOR: Describe your demeanor in this moment.
 Examples: "Glancing at watch, half-listening, clearly multitasking on laptop", "Leaning forward, genuinely interested, taking notes", "Arms crossed, skeptical, ready to push back"
 
-STATEMENTS: Say 2-4 realistic things. Each should:
-- Sound like an actual executive or manager (NOT a training script character)
-- Reflect your current engagement and trust level
-- Include authentic objections, sharp questions, OR genuine interest — based on your personality
-- React naturally to what the rep just said
-- Reference the specific product being pitched and your industry context naturally
+STATEMENTS — CRITICAL RULES FOR NATURAL DIALOG:
+- Your statements array should contain 1-3 items. VARY THE COUNT EVERY TIME.
+- Sometimes say just ONE short thing ("Hmm, go on." or "I'm not sure about that.").
+- Sometimes say 2-3 things when you're engaged or have a strong opinion.
+- NEVER default to exactly 3 or 4 statements every time. That sounds robotic.
+- Vary sentence LENGTH dramatically. Mix short punchy reactions with longer explanations.
+- Use natural speech fillers occasionally: "Look,...", "Well,...", "Here's the thing...", "I mean,..."
+- Include incomplete thoughts, trailing off, or course corrections like real people do.
+- React authentically to what was just said — don't just list questions.
+- If skeptical, sometimes just grunt disapproval or give a one-word response.
+- If interested, might ask a follow-up AND share context in the same breath.
+- Reference the specific product and your industry context naturally.
+- Sound like a REAL person on a call, not an AI generating structured output.
 
 Stay in character as ${config.subject.name}. Never break character. Never make things easier for the rep than your archetype would.`;
 }
 
 export async function POST(request: NextRequest) {
     try {
-        const { messages, sessionId, config } = await request.json() as {
+        const { messages, sessionId, config, isOpening } = await request.json() as {
             messages: { role: string; content: string }[];
             sessionId: string;
             config: SimulateConfig;
+            isOpening?: boolean;
         };
 
         let engagementAnalysis = { temperatureChange: 0, distanceChange: 0, reason: '' };
@@ -199,21 +207,31 @@ export async function POST(request: NextRequest) {
 
         const systemPrompt = buildSystemPrompt(config);
 
+        // If this is the opening, add a user prompt that triggers the opening message
+        const openingPrompt = isOpening ? [{
+            role: 'user' as const,
+            content: `[SYSTEM: The sales rep has just joined the call/meeting. As ${config.subject.name}, deliver your natural opening — you speak first. This could be a greeting, a question about why the meeting was set, checking if they have the time, or jumping straight to business depending on your personality and the scenario context. Keep it brief and natural — 1-2 sentences max. Remember you are the PROSPECT, not the salesperson.]`,
+        }] : [];
+
         const formattedMessages = [
             { role: 'system' as const, content: systemPrompt },
             ...messages.map((msg) => ({
                 role: msg.role as 'user' | 'assistant',
                 content: msg.content,
             })),
+            ...openingPrompt,
         ];
+
+        // Randomize temperature slightly for more natural variance
+        const responseTemp = 0.8 + Math.random() * 0.3; // 0.8 to 1.1
 
         const response = await openai.chat.completions.create({
             model: 'gpt-4o',
-            max_tokens: 700,
+            max_tokens: isOpening ? 200 : 500,
             messages: formattedMessages,
-            temperature: 0.85,
-            presence_penalty: 0.4,
-            frequency_penalty: 0.5,
+            temperature: responseTemp,
+            presence_penalty: 0.6,
+            frequency_penalty: 0.7,
             response_format: { type: 'json_object' },
         });
 
