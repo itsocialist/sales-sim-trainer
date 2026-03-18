@@ -234,7 +234,12 @@ export function resolveVoiceProfile(subjectCondition: string): VoiceProfile {
 export function resolveVoiceFromNameAge(name: string, age: string): VoiceProfile {
     const ageNum = parseInt(age) || 35;
     const firstName = name.split(' ')[0].toLowerCase();
-    const femaleNames = ['sarah', 'michelle', 'maria', 'emma', 'jasmine', 'alex', 'lisa', 'jennifer', 'karen', 'patricia'];
+    const femaleNames = [
+        'priya', 'diana', 'sandra', 'lisa', 'carol',
+        'sarah', 'michelle', 'maria', 'emma', 'jasmine',
+        'jennifer', 'karen', 'patricia', 'jessica', 'ashley',
+        'amanda', 'rachel', 'laura', 'nicole', 'anna', 'sophia',
+    ];
     const isFemale = femaleNames.some(n => firstName.includes(n));
 
     if (isFemale) {

@@ -23,6 +23,9 @@ interface DebriefScreenProps {
     messages: Message[];
     scenarioContext: string;
     intoxicationLevel: string;
+    traineeRole?: string;
+    subjectCondition?: string;
+    scenarioName?: string;
     onRestart: () => void;
     onNewScenario: () => void;
 }
@@ -31,6 +34,9 @@ export default function DebriefScreen({
     messages,
     scenarioContext,
     intoxicationLevel,
+    traineeRole = 'Account Executive',
+    subjectCondition = 'prospect',
+    scenarioName,
     onRestart,
     onNewScenario,
 }: DebriefScreenProps) {
@@ -40,18 +46,31 @@ export default function DebriefScreen({
 
     useEffect(() => {
         async function fetchDebrief() {
+            // Don't attempt scoring with no messages
+            if (!messages || messages.length < 2) {
+                setError(`Not enough conversation data to analyze (${messages?.length || 0} messages). Try having a longer conversation before ending the session.`);
+                setLoading(false);
+                return;
+            }
+
             try {
                 const response = await fetch('/api/debrief', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ messages, scenarioContext, intoxicationLevel }),
+                    body: JSON.stringify({
+                        messages,
+                        scenarioContext,
+                        intoxicationLevel,
+                        traineeRole,
+                        subjectCondition,
+                    }),
                 });
 
                 const data = await response.json();
                 if (data.success && data.analysis) {
                     setAnalysis(data.analysis);
                 } else {
-                    setError('Could not generate analysis');
+                    setError(data.error || 'Could not generate analysis');
                 }
             } catch {
                 setError('Failed to load analysis');
@@ -60,14 +79,14 @@ export default function DebriefScreen({
             }
         }
         fetchDebrief();
-    }, [messages, scenarioContext, intoxicationLevel]);
+    }, [messages, scenarioContext, intoxicationLevel, traineeRole, subjectCondition]);
 
     const ScoreBox = ({ score, label }: { score: number; label: string }) => {
         const color = score >= 7 ? 'var(--accent-primary)' : score >= 5 ? '#f59e0b' : '#ef4444';
         return (
-            <div className="text-center p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-                <div className="text-3xl font-bold" style={{ color }}>{score}</div>
-                <div className="text-xs uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>{label}</div>
+            <div className="text-center p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+                <div className="score-display text-4xl" style={{ color }}>{score}</div>
+                <div className="text-[10px] uppercase tracking-wider mt-2 font-medium" style={{ color: 'var(--text-muted)' }}>{label}</div>
             </div>
         );
     };
@@ -76,8 +95,22 @@ export default function DebriefScreen({
         return (
             <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
                 <div className="text-center">
-                    <div className="label-accent animate-pulse-glow">ANALYZING SESSION</div>
-                    <p className="mt-2" style={{ color: 'var(--text-muted)' }}>Processing conversation data...</p>
+                    <div className="label-accent animate-pulse-glow mb-3">ANALYZING SESSION</div>
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                        Evaluating {messages.length} messages across MEDDIC, Discovery, and Objection Handling...
+                    </p>
+                    <div className="mt-4 flex gap-2 justify-center">
+                        {['MEDDIC', 'DISCOVERY', 'OBJECTIONS', 'PRESENCE'].map(dim => (
+                            <span key={dim} className="text-[10px] px-2 py-1 animate-pulse-glow" style={{
+                                background: 'rgba(63, 212, 151, 0.08)',
+                                color: 'var(--accent-primary)',
+                                border: '1px solid rgba(63, 212, 151, 0.2)',
+                                animationDelay: `${Math.random() * 1}s`,
+                            }}>
+                                {dim}
+                            </span>
+                        ))}
+                    </div>
                 </div>
             </div>
         );
@@ -87,9 +120,9 @@ export default function DebriefScreen({
         return (
             <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-primary)' }}>
                 <div className="text-center max-w-md">
-                    <p className="text-red-400 mb-4">{error || 'Analysis unavailable'}</p>
-                    <p className="mb-6" style={{ color: 'var(--text-muted)' }}>
-                        Session completed with {messages.length} messages.
+                    <p className="text-sm mb-4" style={{ color: '#f59e0b' }}>{error || 'Analysis unavailable'}</p>
+                    <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
+                        Session completed with {messages.length} message{messages.length !== 1 ? 's' : ''}.
                     </p>
                     <div className="flex gap-4 justify-center">
                         <button onClick={onRestart} className="btn-primary px-6 py-3">TRY AGAIN</button>
@@ -100,27 +133,33 @@ export default function DebriefScreen({
         );
     }
 
+    const overallColor = analysis.overallScore >= 7 ? 'var(--accent-primary)' : analysis.overallScore >= 5 ? '#f59e0b' : '#ef4444';
+
     return (
         <div className="min-h-screen px-6 py-8" style={{ background: 'var(--bg-primary)' }}>
-            <div className="max-w-3xl mx-auto">
+            <div className="max-w-3xl mx-auto fade-in">
                 {/* Header */}
                 <div className="text-center mb-8">
                     <span className="label-accent">DEBRIEF COMPLETE</span>
                     <h2 className="text-2xl font-bold mt-2" style={{ color: 'var(--text-primary)' }}>
                         Performance Analysis
                     </h2>
+                    {scenarioName && (
+                        <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                            {scenarioName} · {messages.length} exchanges · {traineeRole}
+                        </p>
+                    )}
                 </div>
 
                 {/* Overall Score */}
                 <div className="text-center p-8 mb-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-                    <div
-                        className="text-6xl font-bold mb-3"
-                        style={{ color: analysis.overallScore >= 7 ? 'var(--accent-primary)' : analysis.overallScore >= 5 ? '#f59e0b' : '#ef4444' }}
-                    >
+                    <div className="score-display text-6xl mb-3" style={{ color: overallColor }}>
                         {analysis.overallScore}
                         <span className="text-2xl" style={{ color: 'var(--text-muted)' }}>/10</span>
                     </div>
-                    <p style={{ color: 'var(--text-secondary)' }}>{analysis.summary}</p>
+                    <p className="text-sm leading-relaxed max-w-lg mx-auto" style={{ color: 'var(--text-secondary)' }}>
+                        {analysis.summary}
+                    </p>
                 </div>
 
                 {/* Score Breakdown */}
@@ -135,7 +174,7 @@ export default function DebriefScreen({
                     <span className="label-accent" style={{ color: 'var(--accent-primary)' }}>STRENGTHS</span>
                     <ul className="mt-3 space-y-2">
                         {analysis.strengths.map((s, i) => (
-                            <li key={i} className="flex gap-2 text-sm" style={{ color: 'var(--text-primary)' }}>
+                            <li key={i} className="flex gap-2 text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>
                                 <span style={{ color: 'var(--accent-primary)' }}>↗</span> {s}
                             </li>
                         ))}
@@ -147,28 +186,32 @@ export default function DebriefScreen({
                     <span className="label-accent" style={{ color: '#f59e0b' }}>AREAS FOR IMPROVEMENT</span>
                     <ul className="mt-3 space-y-2">
                         {analysis.improvements.map((s, i) => (
-                            <li key={i} className="flex gap-2 text-sm" style={{ color: 'var(--text-primary)' }}>
+                            <li key={i} className="flex gap-2 text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>
                                 <span style={{ color: '#f59e0b' }}>→</span> {s}
                             </li>
                         ))}
                     </ul>
                 </div>
 
-                {/* Indicators */}
+                {/* MEDDIC Indicators */}
                 <div className="grid grid-cols-2 gap-4 mb-8">
                     <div className="p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
                         <span className="label-accent">MEDDIC COVERED</span>
                         <ul className="mt-2 space-y-1">
-                            {analysis.indicatorsPresent.slice(0, 4).map((s, i) => (
-                                <li key={i} className="text-sm" style={{ color: 'var(--text-secondary)' }}>• {s}</li>
+                            {analysis.indicatorsPresent.slice(0, 6).map((s, i) => (
+                                <li key={i} className="text-sm flex items-start gap-2" style={{ color: 'var(--text-secondary)' }}>
+                                    <span style={{ color: 'var(--accent-primary)' }}>✓</span> {s}
+                                </li>
                             ))}
                         </ul>
                     </div>
                     <div className="p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-                        <span className="label-accent">MEDDIC GAPS</span>
+                        <span className="label-accent" style={{ color: '#ef4444' }}>MEDDIC GAPS</span>
                         <ul className="mt-2 space-y-1">
-                            {analysis.indicatorsMissed.slice(0, 4).map((s, i) => (
-                                <li key={i} className="text-sm" style={{ color: 'var(--text-secondary)' }}>• {s}</li>
+                            {analysis.indicatorsMissed.slice(0, 6).map((s, i) => (
+                                <li key={i} className="text-sm flex items-start gap-2" style={{ color: 'var(--text-secondary)' }}>
+                                    <span style={{ color: '#ef4444' }}>✗</span> {s}
+                                </li>
                             ))}
                         </ul>
                     </div>

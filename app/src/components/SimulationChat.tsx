@@ -9,6 +9,7 @@ import AudioPlayer from './AudioPlayer';
 import SubjectAvatar from './SubjectAvatar';
 import VoiceInput from './VoiceInput';
 import VoiceFirstOverlay from './VoiceFirstOverlay';
+import VoiceDuplexOverlay from './VoiceDuplexOverlay';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -19,6 +20,8 @@ interface Message {
 interface SimulationChatProps {
     config: SimulationConfig;
     onEndSession: (messages: Message[], scenarioContext: string, intoxicationLevel: string) => void;
+    /** Auto-enter voice mode on mount (for demo presets) */
+    autoVoice?: boolean;
 }
 
 // Analyze rep's sales approach based on message content
@@ -53,7 +56,7 @@ function analyzeRepApproach(message: string): number {
     return Math.max(1, Math.min(10, Math.round(pushiness)));
 }
 
-export default function SimulationChat({ config, onEndSession }: SimulationChatProps) {
+export default function SimulationChat({ config, onEndSession, autoVoice }: SimulationChatProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -64,9 +67,14 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
     const [officerTone, setOfficerTone] = useState(5); // Start neutral
     const [behaviorDescription, setBehaviorDescription] = useState('');
     const [sessionId] = useState(`session-${Date.now()}`);
-    const [voiceMode, setVoiceMode] = useState(false);
+    const [voiceMode, setVoiceMode] = useState(autoVoice || false);
     const [lastAssistantMessage, setLastAssistantMessage] = useState('');
+    const [hasInitialGreeting, setHasInitialGreeting] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const activeRequestRef = useRef<AbortController | null>(null);
+
+    // Derive the stakeholder voice key from the subjectPack name (for TTS voice matching)
+    const stakeholderVoiceKey = config.subjectPack?.name || config.subjectPack?.conditionLevel || 'economic-buyer';
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -76,6 +84,83 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
         const timer = setInterval(() => setSessionTime((t) => t + 1), 1000);
         return () => clearInterval(timer);
     }, []);
+
+    // ── CUSTOMER SPEAKS FIRST — auto-trigger opening message on mount ──
+    useEffect(() => {
+        if (hasInitialGreeting) return;
+        setHasInitialGreeting(true);
+
+        // Small delay to let UI mount, then trigger opening from the customer
+        const timer = setTimeout(() => {
+            triggerCustomerOpening();
+        }, 800);
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const triggerCustomerOpening = async () => {
+        setIsLoading(true);
+        setStreamingContent('');
+
+        try {
+            const response = await fetch('/api/simulate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: [],  // Empty — customer opens
+                    sessionId,
+                    config: {
+                        subject: config.subject,
+                        subjectPack: config.subjectPack,
+                        scenarioPack: config.scenarioPack,
+                        trainingPack: config.trainingPack,
+                        productPack: config.productPack,
+                        icpPack: config.icpPack,
+                        distance,
+                        temperature,
+                    },
+                    isOpening: true,  // Signal this is the opening
+                }),
+            });
+
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder();
+            let fullContent = '';
+
+            if (reader) {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const text = decoder.decode(value);
+                    const lines = text.split('\n').filter(Boolean);
+                    for (const line of lines) {
+                        try {
+                            const data = JSON.parse(line);
+                            if (data.type === 'meta' && data.behavior) {
+                                setBehaviorDescription(data.behavior);
+                            } else if (data.type === 'content') {
+                                fullContent += data.content;
+                                setStreamingContent(fullContent);
+                            } else if (data.type === 'done') {
+                                const assistantMessage: Message = {
+                                    role: 'assistant',
+                                    content: fullContent,
+                                    timestamp: new Date(),
+                                };
+                                setMessages(prev => [...prev, assistantMessage]);
+                                setLastAssistantMessage(fullContent);
+                                setStreamingContent('');
+                            }
+                        } catch { /* skip */ }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Opening message failed:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
@@ -136,6 +221,8 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
                         subjectPack: config.subjectPack,
                         scenarioPack: config.scenarioPack,
                         trainingPack: config.trainingPack,
+                        productPack: config.productPack,
+                        icpPack: config.icpPack,
                         distance,
                         temperature,
                     },
@@ -205,7 +292,14 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
 
     // Voice-first mode: send message via voice transcript
     const sendVoiceMessage = useCallback((text: string) => {
-        if (!text.trim() || isLoading) return;
+        if (!text.trim()) return;
+
+        // Cancel any in-flight request to prevent overlapping responses
+        // (this replaces the old isLoading guard which caused stale closure hangs)
+        if (activeRequestRef.current) {
+            activeRequestRef.current.abort();
+            activeRequestRef.current = null;
+        }
 
         const userMessage: Message = {
             role: 'user',
@@ -218,10 +312,14 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
         setIsLoading(true);
         setStreamingContent('');
 
+        const abortController = new AbortController();
+        activeRequestRef.current = abortController;
+
         // Call the same simulation API
         fetch('/api/simulate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: abortController.signal,
             body: JSON.stringify({
                 messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
                 sessionId,
@@ -230,6 +328,8 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
                     subjectPack: config.subjectPack,
                     scenarioPack: config.scenarioPack,
                     trainingPack: config.trainingPack,
+                    productPack: config.productPack,
+                    icpPack: config.icpPack,
                     distance,
                     temperature,
                 },
@@ -243,6 +343,11 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
+                    // Check if aborted
+                    if (abortController.signal.aborted) {
+                        reader.cancel();
+                        return;
+                    }
                     const text = decoder.decode(value);
                     const lines = text.split('\n').filter(Boolean);
                     for (const line of lines) {
@@ -270,28 +375,37 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
                 }
             }
         }).catch(error => {
+            if (error.name === 'AbortError') return; // Expected on interrupt
             console.error('Voice message failed:', error);
         }).finally(() => {
             setIsLoading(false);
+            activeRequestRef.current = null;
         });
-    }, [messages, isLoading, sessionId, config, distance, temperature]);
+    }, [messages, sessionId, config, distance, temperature]);
 
     return (
         <div className="flex flex-col h-screen" style={{ background: 'var(--bg-primary)' }}>
             {/* Voice-First Overlay */}
             {voiceMode && (
-                <VoiceFirstOverlay
+                <VoiceDuplexOverlay
+                    config={config}
                     subjectName={config.subject.name}
                     subjectTitle={(config.subject as unknown as { title: string }).title || 'Prospect'}
-                    lastAssistantMessage={lastAssistantMessage}
-                    isStreaming={!!streamingContent}
-                    streamingText={streamingContent}
-                    onUserSpeak={sendVoiceMessage}
-                    onExitVoiceMode={() => setVoiceMode(false)}
                     sessionTime={sessionTime}
                     rapport={Math.round(10 - temperature)}
-                    isLoading={isLoading}
-                    subjectCondition={config.subjectPack?.conditionLevel}
+                    behaviorDescription={behaviorDescription}
+                    onExitVoiceMode={() => setVoiceMode(false)}
+                    onTranscript={(role, text) => {
+                        const msg: Message = {
+                            role: role === 'user' ? 'user' : 'assistant',
+                            content: text,
+                            timestamp: new Date(),
+                        };
+                        setMessages(prev => [...prev, msg]);
+                        if (role === 'assistant') {
+                            setLastAssistantMessage(text);
+                        }
+                    }}
                 />
             )}
             {/* Context Display */}
@@ -344,11 +458,11 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
             {/* Chat Area */}
             <div className="flex-1 overflow-y-auto px-6 py-6">
                 <div className="max-w-3xl mx-auto space-y-6">
-                    {messages.length === 0 && !streamingContent && (
+                    {messages.length === 0 && !streamingContent && !isLoading && (
                         <div className="text-center py-16">
-                            <div className="label-accent mb-3">SIMULATION READY</div>
+                            <div className="label-accent mb-3">CONNECTING...</div>
                             <p className="text-lg" style={{ color: 'var(--text-secondary)' }}>
-                                Initiate contact with {config.subject.name}
+                                {config.subject.name} is joining the call...
                             </p>
                             <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
                                 {(config.subject as unknown as {title: string; company: string}).title} · {(config.subject as unknown as {title: string; company: string}).company}
@@ -377,7 +491,7 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
                                                 text={message.content}
                                                 subjectName={config.subject.name}
                                                 subjectAge={(config.subject as unknown as {title: string}).title || 'Executive'}
-                                                subjectCondition={config.subjectPack?.conditionLevel || config.subject.name}
+                                                subjectCondition={stakeholderVoiceKey}
                                             />
                                         </div>
                                     </div>
