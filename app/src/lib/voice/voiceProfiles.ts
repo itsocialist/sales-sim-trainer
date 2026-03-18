@@ -189,6 +189,115 @@ export const STAKEHOLDER_VOICES: Record<string, VoiceProfile> = {
             speed: 1.0,
         },
     },
+
+    // ═══════════════════════════════════════
+    // CRE BROKER PACK
+    // ═══════════════════════════════════════
+
+    'property-owner': {
+        name: 'Property Owner (Listing Prospect)',
+        elevenlabsVoiceId: 'pFZP5JQG7iQjIQuC4Bku',  // Jeff — established, confident
+        fishModelId: 'e58b0d7efca34eb5b5c9fb86a18a83b5',
+        openaiVoice: 'onyx',
+        gender: 'male',
+        ageRange: 'senior',
+        style: 'Protective of their property. Skeptical of new brokers. Speaks in numbers.',
+        elevenlabsSettings: {
+            stability: 0.6,
+            similarity_boost: 0.8,
+            style: 0.3,
+            use_speaker_boost: true,
+        },
+        fishSettings: {
+            temperature: 0.5,
+            top_p: 0.7,
+            speed: 0.9,
+        },
+    },
+
+    'institutional-investor': {
+        name: 'Institutional Investor',
+        elevenlabsVoiceId: 'onwK4e9ZLuTAKqWW03F9',  // Daniel — commanding, analytical
+        fishModelId: 'e58b0d7efca34eb5b5c9fb86a18a83b5',
+        openaiVoice: 'onyx',
+        gender: 'male',
+        ageRange: 'senior',
+        style: 'Pure numbers. Cap rates, IRR, NOI. No small talk. Prove your worth with data.',
+        elevenlabsSettings: {
+            stability: 0.7,
+            similarity_boost: 0.85,
+            style: 0.2,
+            use_speaker_boost: true,
+        },
+        fishSettings: {
+            temperature: 0.4,
+            top_p: 0.65,
+            speed: 0.95,
+        },
+    },
+
+    'tenant-rep': {
+        name: 'Tenant Representative',
+        elevenlabsVoiceId: 'XB0fDUnXU5powFXDhCwa',  // Charlotte — professional, direct
+        fishModelId: '7f92f8afb8ec43bf81429cc1c9199cb1',
+        openaiVoice: 'nova',
+        gender: 'female',
+        ageRange: 'middle',
+        style: 'Deadline-driven, focused on lease terms. Professional but firm on TI and concessions.',
+        elevenlabsSettings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+            style: 0.4,
+            use_speaker_boost: true,
+        },
+        fishSettings: {
+            temperature: 0.6,
+            top_p: 0.75,
+            speed: 1.05,
+        },
+    },
+
+    'exchange-buyer': {
+        name: '1031 Exchange Buyer',
+        elevenlabsVoiceId: 'N2lVS1w4EtoT3dr4eOWO',  // Callum — stressed but focused
+        fishModelId: 'e58b0d7efca34eb5b5c9fb86a18a83b5',
+        openaiVoice: 'fable',
+        gender: 'male',
+        ageRange: 'middle',
+        style: 'Anxious about deadlines. Focused on qualification. Needs reassurance and speed.',
+        elevenlabsSettings: {
+            stability: 0.4,
+            similarity_boost: 0.7,
+            style: 0.5,
+            use_speaker_boost: true,
+        },
+        fishSettings: {
+            temperature: 0.7,
+            top_p: 0.8,
+            speed: 1.1,
+        },
+    },
+
+    'pm-client': {
+        name: 'Property Management Client',
+        elevenlabsVoiceId: 'EXAVITQu4vr4xnSDxMaL',  // Sarah — frustrated but open
+        fishModelId: '7f92f8afb8ec43bf81429cc1c9199cb1',
+        openaiVoice: 'shimmer',
+        gender: 'female',
+        ageRange: 'senior',
+        style: 'Frustrated with current PM. Wants accountability and numbers. Ready to switch if convinced.',
+        elevenlabsSettings: {
+            stability: 0.45,
+            similarity_boost: 0.75,
+            style: 0.45,
+            use_speaker_boost: true,
+        },
+        fishSettings: {
+            temperature: 0.65,
+            top_p: 0.75,
+            speed: 0.95,
+        },
+    },
 };
 
 /**
@@ -198,7 +307,24 @@ export const STAKEHOLDER_VOICES: Record<string, VoiceProfile> = {
 export function resolveVoiceProfile(subjectCondition: string): VoiceProfile {
     const conditionLower = subjectCondition.toLowerCase();
 
-    // Match against known stakeholder types
+    // ── CRE Broker Pack matches ──
+    if (conditionLower.includes('property owner') || conditionLower.includes('listing')) {
+        return STAKEHOLDER_VOICES['property-owner'];
+    }
+    if (conditionLower.includes('institutional') || conditionLower.includes('investor') && !conditionLower.includes('1031')) {
+        return STAKEHOLDER_VOICES['institutional-investor'];
+    }
+    if (conditionLower.includes('tenant')) {
+        return STAKEHOLDER_VOICES['tenant-rep'];
+    }
+    if (conditionLower.includes('1031') || conditionLower.includes('exchange')) {
+        return STAKEHOLDER_VOICES['exchange-buyer'];
+    }
+    if (conditionLower.includes('property management') || conditionLower.includes('retention') || conditionLower.includes('pm client')) {
+        return STAKEHOLDER_VOICES['pm-client'];
+    }
+
+    // ── Tech sales matches ──
     if (conditionLower.includes('champion') || conditionLower.includes('advocate')) {
         return STAKEHOLDER_VOICES['champion'];
     }
