@@ -13,7 +13,6 @@
 
 import { useState, useEffect } from 'react';
 import {
-    TRAINING_PACKS,
     type TrainingPack,
     type SubjectPack,
     type ScenarioPack,
@@ -22,7 +21,7 @@ import {
 } from '@/lib/packs/trainingPacks';
 import { type ProductPack } from '@/lib/packs/productPacks';
 import { type ICPPack } from '@/lib/packs/icpPacks';
-import { getAllProducts, getAllICPs } from '@/lib/packs/packStore';
+import { getAllProducts, getAllICPs, getAllTrainingPacks } from '@/lib/packs/packStore';
 
 export interface SimulationConfig {
     productPack: ProductPack;
@@ -262,7 +261,7 @@ export default function PackSelector({ onStart, onOpenLibrary }: PackSelectorPro
                                     Your sales role
                                 </h2>
                                 <div className="space-y-3">
-                                    {TRAINING_PACKS.map(pack => (
+                                    {getAllTrainingPacks().map(pack => (
                                         <button
                                             key={pack.id}
                                             onClick={() => { setSelectedTraining(pack); setSelectedSubject(null); setSelectedScenario(null); }}

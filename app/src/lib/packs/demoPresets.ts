@@ -5,16 +5,16 @@
  * Stakeholder, and Scenario so the user can skip all configuration.
  */
 
-import { PRODUCT_PACKS, type ProductPack } from './productPacks';
-import { ICP_PACKS, type ICPPack } from './icpPacks';
+import { type ProductPack } from './productPacks';
+import { type ICPPack } from './icpPacks';
 import {
-    TRAINING_PACKS,
     type TrainingPack,
     type SubjectPack,
     type ScenarioPack,
     type SubjectProfile,
     getRandomSubject,
 } from './trainingPacks';
+import { getAllProducts, getAllICPs, getAllTrainingPacks } from './packStore';
 
 export interface DemoPreset {
     id: string;
@@ -77,6 +77,19 @@ export const DEMO_PRESETS: DemoPreset[] = [
         scenarioIndex: 2,
         voiceMode: true,
     },
+    {
+        id: 'cre-listing',
+        name: 'CRE Listing Presentation',
+        description: 'Win the exclusive listing from a property owner evaluating 3 brokerages.',
+        icon: '🏗️',
+        accentColor: '#10b981',
+        productIndex: 3,   // South Coast CRE Services
+        icpIndex: 4,       // CRE Multifamily Investor
+        trainingIndex: 3,  // CRE Broker
+        stakeholderIndex: 0, // Property Owner
+        scenarioIndex: 0,  // Listing Presentation
+        voiceMode: true,
+    },
 ];
 
 export interface ResolvedDemoConfig {
@@ -90,9 +103,9 @@ export interface ResolvedDemoConfig {
 }
 
 export function resolveDemoPreset(preset: DemoPreset): ResolvedDemoConfig | null {
-    const products = PRODUCT_PACKS;
-    const icps = ICP_PACKS;
-    const trainings = TRAINING_PACKS;
+    const products = getAllProducts();
+    const icps = getAllICPs();
+    const trainings = getAllTrainingPacks();
 
     const product = products[preset.productIndex % products.length];
     const icp = icps[preset.icpIndex % icps.length];
