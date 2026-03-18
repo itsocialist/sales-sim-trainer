@@ -12,8 +12,30 @@ export default function ContextDisplay({ config }: ContextDisplayProps) {
             className="px-5 py-4"
             style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}
         >
-            <div className="max-w-4xl mx-auto">
-                <div className="grid grid-cols-4 gap-6 text-sm">
+            <div className="max-w-6xl mx-auto">
+                <div className="grid grid-cols-6 gap-4 text-sm">
+                    {/* Product */}
+                    <div>
+                        <div className="label-accent text-xs">SELLING</div>
+                        <div className="mt-1 font-medium" style={{ color: 'var(--text-primary)' }}>
+                            {config.productPack.name}
+                        </div>
+                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            {config.productPack.company}
+                        </div>
+                    </div>
+
+                    {/* ICP */}
+                    <div>
+                        <div className="label-accent text-xs">BUYER</div>
+                        <div className="mt-1 font-medium" style={{ color: 'var(--text-primary)' }}>
+                            {config.icpPack.name}
+                        </div>
+                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            {config.icpPack.companySize}
+                        </div>
+                    </div>
+
                     {/* Scenario */}
                     <div>
                         <div className="label-accent text-xs">SCENARIO</div>
@@ -27,13 +49,15 @@ export default function ContextDisplay({ config }: ContextDisplayProps) {
                         <div className="label-accent text-xs">PROSPECT</div>
                         <div className="mt-1" style={{ color: 'var(--text-primary)' }}>
                             <span className="font-medium">{config.subject.name}</span>
-                            <span style={{ color: 'var(--text-muted)' }}> · {(config.subject as unknown as {title: string}).title || ''}</span>
+                        </div>
+                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            {(config.subject as unknown as {title: string}).title || ''}
                         </div>
                     </div>
 
                     {/* Stakeholder Type */}
                     <div>
-                        <div className="label-accent text-xs">STAKEHOLDER TYPE</div>
+                        <div className="label-accent text-xs">STAKEHOLDER</div>
                         <div className="mt-1" style={{ color: 'var(--text-primary)' }}>
                             {config.subjectPack.name}
                             <span
@@ -59,8 +83,8 @@ export default function ContextDisplay({ config }: ContextDisplayProps) {
                     </div>
                 </div>
 
-                {/* Scenario Context */}
-                <div className="mt-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                {/* Context strip */}
+                <div className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
                     {config.scenarioPack.context}
                 </div>
             </div>

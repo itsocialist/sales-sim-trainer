@@ -27,8 +27,32 @@ interface SimulateConfig {
     trainingPack: {
         targetRole: string;
     };
-    distance: number;    // warmth/trust: 1=cold stranger, 10=trusted advisor
-    temperature: number; // engagement: 1=disinterested, 10=highly engaged/active eval
+    productPack?: {
+        name: string;
+        company: string;
+        tagline: string;
+        description: string;
+        valueProps: string[];
+        features: { name: string; description: string; painMapping: string }[];
+        pricing: { name: string; price: string; unit: string }[];
+        competitors: { name: string; commonReference: string; ourAdvantage: string; theirAdvantage: string; counterPositioning: string }[];
+        objectionHandling: Record<string, string>;
+        aiContext: string;
+    };
+    icpPack?: {
+        name: string;
+        companySize: string;
+        revenueRange: string;
+        vertical: { name: string; painPoints: string[]; regulations: string[]; jargon: string[] };
+        buyerPersonas: { title: string; priorities: string[]; commonObjections: string[]; persuasionTriggers: string[]; decisionStyle: string }[];
+        salesCycleLength: string;
+        avgDealSize: string;
+        buyingTriggers: string[];
+        dealBlockers: string[];
+        aiContext: string;
+    };
+    distance: number;
+    temperature: number;
 }
 
 async function analyzeEngagement(
@@ -91,6 +115,33 @@ function buildSystemPrompt(config: SimulateConfig): string {
         ? 'You are somewhat curious but skeptical. You need more to commit your time.'
         : 'You are skeptical and disinterested. You\'re looking for a reason to end this call.';
 
+    // Product context — what the rep is selling
+    const productContext = config.productPack ? `
+THE PRODUCT BEING PITCHED TO YOU:
+- Product: ${config.productPack.name} by ${config.productPack.company}
+- Tagline: "${config.productPack.tagline}"
+- What it does: ${config.productPack.description}
+- Key value props the rep might mention: ${config.productPack.valueProps.join('; ')}
+- Pricing: ${config.productPack.pricing.map(p => `${p.name}: ${p.price}/${p.unit}`).join(', ')}
+${config.productPack.competitors.length > 0 ? `- You may reference competitors: ${config.productPack.competitors.map(c => `${c.name} (${c.commonReference})`).join('; ')}` : ''}
+- ${config.productPack.aiContext}
+` : '';
+
+    // ICP context — who the buyer is
+    const icpContext = config.icpPack ? `
+YOUR ORGANIZATION PROFILE:
+- Segment: ${config.icpPack.name}
+- Company size: ${config.icpPack.companySize}
+- Revenue: ${config.icpPack.revenueRange}
+- Industry: ${config.icpPack.vertical.name}
+- Pain points you experience: ${config.icpPack.vertical.painPoints.slice(0, 3).join('; ')}
+- Industry jargon you use naturally: ${config.icpPack.vertical.jargon.slice(0, 5).join(', ')}
+- Compliance you care about: ${config.icpPack.vertical.regulations.join(', ')}
+- Typical buying cycle: ${config.icpPack.salesCycleLength}
+- Common deal blockers: ${config.icpPack.dealBlockers.slice(0, 3).join('; ')}
+- ${config.icpPack.aiContext}
+` : '';
+
     return `You ARE ${config.subject.name}, ${config.subject.title} at ${config.subject.company}.
 
 WHO YOU ARE:
@@ -101,7 +152,7 @@ WHO YOU ARE:
 YOUR STAKEHOLDER TYPE:
 ${config.subjectPack.condition}
 ${config.subjectPack.behaviorPrompt}
-
+${productContext}${icpContext}
 CURRENT SITUATION:
 ${config.scenarioPack.context}
 ${warmthContext}
@@ -124,6 +175,7 @@ STATEMENTS: Say 2-4 realistic things. Each should:
 - Reflect your current engagement and trust level
 - Include authentic objections, sharp questions, OR genuine interest — based on your personality
 - React naturally to what the rep just said
+- Reference the specific product being pitched and your industry context naturally
 
 Stay in character as ${config.subject.name}. Never break character. Never make things easier for the rep than your archetype would.`;
 }
