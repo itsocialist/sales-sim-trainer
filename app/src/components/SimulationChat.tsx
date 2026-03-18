@@ -289,9 +289,10 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
 
     // Voice-first mode: send message via voice transcript
     const sendVoiceMessage = useCallback((text: string) => {
-        if (!text.trim() || isLoading) return;
+        if (!text.trim()) return;
 
         // Cancel any in-flight request to prevent overlapping responses
+        // (this replaces the old isLoading guard which caused stale closure hangs)
         if (activeRequestRef.current) {
             activeRequestRef.current.abort();
             activeRequestRef.current = null;
@@ -377,7 +378,7 @@ export default function SimulationChat({ config, onEndSession }: SimulationChatP
             setIsLoading(false);
             activeRequestRef.current = null;
         });
-    }, [messages, isLoading, sessionId, config, distance, temperature]);
+    }, [messages, sessionId, config, distance, temperature]);
 
     return (
         <div className="flex flex-col h-screen" style={{ background: 'var(--bg-primary)' }}>

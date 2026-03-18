@@ -93,7 +93,17 @@ export default function VoiceFirstOverlay({
     const ttsAbortRef = useRef<AbortController | null>(null);
     const audioSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
 
-    // Keep stateRef in sync
+    // ── REFS to break stale closure chains ──
+    // These ensure recognition handlers and audio.onended always
+    // call the LATEST version of callbacks, not stale closures.
+    const onUserSpeakRef = useRef(onUserSpeak);
+    const startListeningRef = useRef<() => void>(() => {});
+
+    // Keep refs in sync with latest values
+    useEffect(() => {
+        onUserSpeakRef.current = onUserSpeak;
+    }, [onUserSpeak]);
+
     useEffect(() => {
         stateRef.current = voiceState;
     }, [voiceState]);
@@ -282,8 +292,8 @@ export default function VoiceFirstOverlay({
                 audioRef.current = null;
                 audioSourceRef.current = null;
                 if (mountedRef.current) {
-                    // FULL DUPLEX: immediately start listening after TTS ends
-                    startListening();
+                    // FULL DUPLEX: use REF to call latest startListening (avoids stale closure)
+                    startListeningRef.current();
                 }
             };
 
@@ -292,7 +302,7 @@ export default function VoiceFirstOverlay({
                 audioRef.current = null;
                 audioSourceRef.current = null;
                 if (mountedRef.current) {
-                    startListening();
+                    startListeningRef.current();
                 }
             };
 
@@ -303,7 +313,7 @@ export default function VoiceFirstOverlay({
             if (error instanceof Error && error.name === 'AbortError') return;
             console.error('Voice-first TTS error:', error);
             if (mountedRef.current) {
-                startListening();
+                startListeningRef.current();
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -364,9 +374,9 @@ export default function VoiceFirstOverlay({
                     return;
                 }
 
-                // FULL DUPLEX: auto-send immediately, no button press needed
+                // FULL DUPLEX: use REF to call latest onUserSpeak (avoids stale closure)
                 setVoiceState('processing');
-                onUserSpeak(trimmed);
+                onUserSpeakRef.current(trimmed);
             }
         };
 
@@ -418,7 +428,12 @@ export default function VoiceFirstOverlay({
                 }
             }, 500);
         }
-    }, [onUserSpeak, onExitVoiceMode, stopTTS]);
+    }, [onExitVoiceMode, stopTTS]);
+
+    // Keep startListeningRef in sync with the latest startListening
+    useEffect(() => {
+        startListeningRef.current = startListening;
+    }, [startListening]);
 
     const stopListeningQuiet = useCallback(() => {
         isListeningRef.current = false;
