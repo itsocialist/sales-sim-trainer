@@ -94,19 +94,23 @@ export default function VoiceFirstOverlay({
     const audioSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
 
     // ── REFS to break stale closure chains ──
-    // These ensure recognition handlers and audio.onended always
-    // call the LATEST version of callbacks, not stale closures.
     const onUserSpeakRef = useRef(onUserSpeak);
     const startListeningRef = useRef<() => void>(() => {});
 
-    // Keep refs in sync with latest values
+    // Keep onUserSpeak ref in sync
     useEffect(() => {
         onUserSpeakRef.current = onUserSpeak;
     }, [onUserSpeak]);
 
-    useEffect(() => {
-        stateRef.current = voiceState;
-    }, [voiceState]);
+    // CRITICAL: Helper to set voice state synchronously.
+    // stateRef must be updated BEFORE any recognition.abort() calls,
+    // because abort triggers recognition.onend synchronously, and the
+    // onend handler checks stateRef to decide whether to restart listening.
+    // Using useEffect to sync stateRef was causing a race condition.
+    const setVoiceStateSafe = useCallback((state: VoiceState) => {
+        stateRef.current = state;  // Synchronous — guards fire correctly
+        setVoiceState(state);      // Async render update for UI
+    }, []);
 
     // ── AUTO-START listening on mount ──
     useEffect(() => {
@@ -234,13 +238,13 @@ export default function VoiceFirstOverlay({
     // ── TTS Playback ──
     const playTTS = useCallback(async (text: string) => {
         try {
-            // CRITICAL: Stop any existing audio BEFORE starting new TTS
+            // CRITICAL: Set state BEFORE stopping listeners.
+            // This prevents recognition.onend (fired by abort) from
+            // seeing stateRef='listening' and restarting the mic.
+            setVoiceStateSafe('speaking');
+
             stopTTS();
-
-            // Stop any current listening before speaking
             stopListeningQuiet();
-
-            setVoiceState('speaking');
 
             // Create abort controller for this TTS request
             const abortController = new AbortController();
@@ -292,8 +296,14 @@ export default function VoiceFirstOverlay({
                 audioRef.current = null;
                 audioSourceRef.current = null;
                 if (mountedRef.current) {
-                    // FULL DUPLEX: use REF to call latest startListening (avoids stale closure)
-                    startListeningRef.current();
+                    // ECHO COOLDOWN: Wait 600ms after TTS ends before re-enabling mic.
+                    // This prevents the speaker's trailing echo from being picked up
+                    // by SpeechRecognition and interpreted as user speech.
+                    setTimeout(() => {
+                        if (mountedRef.current && stateRef.current === 'speaking') {
+                            startListeningRef.current();
+                        }
+                    }, 600);
                 }
             };
 
@@ -302,7 +312,11 @@ export default function VoiceFirstOverlay({
                 audioRef.current = null;
                 audioSourceRef.current = null;
                 if (mountedRef.current) {
-                    startListeningRef.current();
+                    setTimeout(() => {
+                        if (mountedRef.current) {
+                            startListeningRef.current();
+                        }
+                    }, 600);
                 }
             };
 
@@ -335,7 +349,7 @@ export default function VoiceFirstOverlay({
         recognition.onstart = () => {
             isListeningRef.current = true;
             if (mountedRef.current) {
-                setVoiceState('listening');
+                setVoiceStateSafe('listening');
                 setTranscript('');
                 setInterimTranscript('');
             }
@@ -360,7 +374,17 @@ export default function VoiceFirstOverlay({
             }
 
             if (finalText && mountedRef.current) {
+                // ECHO GUARD: Reject any speech recognized while TTS is playing
+                // or a response is being generated. This prevents the mic from
+                // picking up speaker output and feeding it back as user input.
+                if (stateRef.current === 'speaking' || stateRef.current === 'processing') {
+                    console.log('Echo guard: ignoring speech during', stateRef.current);
+                    return;
+                }
+
                 const trimmed = finalText.trim();
+                if (!trimmed) return;
+
                 setTranscript(trimmed);
                 setInterimTranscript('');
                 isListeningRef.current = false;
@@ -375,7 +399,7 @@ export default function VoiceFirstOverlay({
                 }
 
                 // FULL DUPLEX: use REF to call latest onUserSpeak (avoids stale closure)
-                setVoiceState('processing');
+                setVoiceStateSafe('processing');
                 onUserSpeakRef.current(trimmed);
             }
         };
